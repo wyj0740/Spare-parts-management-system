@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据备份 - 备品备件管理系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+
+        .container {
+            max-width: 1200px;
+        }
+
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .page-header h1 {
+            margin: 0;
+            color: #1e293b;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            border: none;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #2563eb 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 15px 20px;
+            border: none;
+        }
+
+        .badge-status {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-backup {
+            padding: 10px 20px;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-backup:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .table td {
+            vertical-align: middle;
+        }
+
+        .badge-file-type {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- 页面头部 -->
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h1><i class="bi bi-database-fill-down"></i> 数据备份管理</h1>
+            <p class="text-muted mb-0 mt-1">定期自动备份，保障数据安全</p>
+        </div>
+        <button class="btn btn-outline-secondary" onclick="window.location.href='/'">
+            <i class="bi bi-arrow-left"></i> 返回主页
+        </button>
+    </div>
+
+    <!-- 备份配置 -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-gear"></i> 备份配置</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">自动备份</label>
+                    <select class="form-select" id="autoBackupEnabled">
+                        <option value="true">启用</option>
+                        <option value="false">禁用</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">备份时间</label>
+                    <input type="time" class="form-control" id="backupTime">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">保留天数</label>
+                    <input type="number" class="form-control" id="keepDays" min="1" max="365">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">备份类型</label>
+                    <select class="form-select" id="backupType">
+                        <option value="both">数据库+Excel</option>
+                        <option value="database">仅数据库</option>
+                        <option value="excel">仅Excel</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button class="btn btn-primary btn-backup" onclick="saveConfig()">
+                    <i class="bi bi-save"></i> 保存配置
+                </button>
+                <button class="btn btn-success btn-backup ms-2" onclick="backupNow()">
+                    <i class="bi bi-arrow-down-circle"></i> 立即备份
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 备份文件列表 -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-archive"></i> 备份文件列表</h5>
+            <button class="btn btn-light btn-sm" onclick="loadBackups()">
+                <i class="bi bi-arrow-clockwise"></i> 刷新
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%;">文件名</th>
+                            <th style="width: 15%;">类型</th>
+                            <th style="width: 15%;">大小</th>
+                            <th style="width: 20%;">创建时间</th>
+                            <th style="width: 10%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="backupTableBody">
+                        <tr>
+                            <td colspan="5" class="text-center" style="padding: 3rem; color: #cbd5e1;">
+                                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: #3b82f6;">
+                                    <span class="visually-hidden">加载中...</span>
+                                </div>
+                                <p class="mt-3" style="color: #94a3b8;">正在加载备份列表...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 加载配置
+    function loadConfig() {
+        $.ajax({
+            url: '/api/backup/config',
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    const config = response.data;
+                    $('#autoBackupEnabled').val(config.auto_backup_enabled ? 'true' : 'false');
+                    $('#backupTime').val(config.backup_time || '02:00');
+                    $('#keepDays').val(config.keep_days || 30);
+                    $('#backupType').val(config.backup_type || 'both');
+                }
+            },
+            error: function(xhr) {
+                showAlert('加载配置失败', 'danger');
+            }
+        });
+    }
+
+    // 保存配置
+    function saveConfig() {
+        const config = {
+            auto_backup_enabled: $('#autoBackupEnabled').val() === 'true',
+            backup_time: $('#backupTime').val(),
+            keep_days: parseInt($('#keepDays').val()),
+            backup_type: $('#backupType').val()
+        };
+
+        $.ajax({
+            url: '/api/backup/config',
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(config),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('配置保存成功！自动备份已' + (config.auto_backup_enabled ? '启用' : '禁用'), 'success');
+                }
+            },
+            error: function(xhr) {
+                const message = xhr.responseJSON?.message || '保存配置失败';
+                showAlert(message, 'danger');
+            }
+        });
+    }
+
+    // 立即备份
+    function backupNow() {
+        const backupType = $('#backupType').val();
+        
+        showAlert('正在执行备份，请稍候...', 'info');
+        
+        $.ajax({
+            url: '/api/backup/now',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ backup_type: backupType }),
+            success: function(response) {
+                if (response.success) {
+                    showAlert(response.message, 'success');
+                    loadBackups();
+                }
+            },
+            error: function(xhr) {
+                const message = xhr.responseJSON?.message || '备份失败';
+                showAlert(message, 'danger');
+            }
+        });
+    }
+
+    // 加载备份列表
+    function loadBackups() {
+        $.ajax({
+            url: '/api/backup/list',
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    displayBackups(response.data);
+                }
+            },
+            error: function(xhr) {
+                showAlert('加载备份列表失败', 'danger');
+            }
+        });
+    }
+
+    // 显示备份列表
+    function displayBackups(backups) {
+        const tbody = $('#backupTableBody');
+        tbody.empty();
+
+        if (backups.length === 0) {
+            tbody.append(`
+                <tr>
+                    <td colspan="5" class="text-center" style="padding: 3rem; color: #cbd5e1;">
+                        <i class="bi bi-inbox" style="font-size: 3rem; color: #94a3b8;"></i>
+                        <p class="mt-3" style="color: #94a3b8;">暂无备份文件</p>
+                    </td>
+                </tr>
+            `);
+            return;
+        }
+
+        backups.forEach(function(backup) {
+            const typeLabel = backup.type === 'database' ? 'Database' : 'Excel';
+            const typeBadge = backup.type === 'database' ? 
+                '<span class="badge bg-primary badge-file-type">数据库</span>' : 
+                '<span class="badge bg-success badge-file-type">Excel</span>';
+            
+            const sizeKB = (backup.size / 1024).toFixed(2);
+            const sizeMB = (backup.size / 1024 / 1024).toFixed(2);
+            const sizeDisplay = backup.size > 1024 * 1024 ? sizeMB + ' MB' : sizeKB + ' KB';
+
+            tbody.append(`
+                <tr>
+                    <td><i class="bi bi-file-earmark-zip"></i> ${backup.filename}</td>
+                    <td>${typeBadge}</td>
+                    <td>${sizeDisplay}</td>
+                    <td><i class="bi bi-clock"></i> ${backup.created_at}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="downloadBackup('${backup.filename}')" title="下载">
+                            <i class="bi bi-download"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger ms-1" onclick="deleteBackup('${backup.filename}')" title="删除">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `);
+        });
+    }
+
+    // 下载备份
+    function downloadBackup(filename) {
+        window.location.href = `/api/backup/download/${filename}`;
+    }
+
+    // 删除备份
+    function deleteBackup(filename) {
+        if (!confirm('确定要删除这个备份文件吗？')) {
+            return;
+        }
+
+        $.ajax({
+            url: `/api/backup/delete/${filename}`,
+            method: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    showAlert('备份文件删除成功', 'success');
+                    loadBackups();
+                }
+            },
+            error: function(xhr) {
+                const message = xhr.responseJSON?.message || '删除失败';
+                showAlert(message, 'danger');
+            }
+        });
+    }
+
+    // 显示提示
+    function showAlert(message, type) {
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" 
+                 role="alert" style="z-index: 9999; min-width: 300px;">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        $('body').append(alertHtml);
+        
+        setTimeout(function() {
+            $('.alert').fadeOut(function() {
+                $(this).remove();
+            });
+        }, 3000);
+    }
+
+    // 页面加载时初始化
+    $(document).ready(function() {
+        loadConfig();
+        loadBackups();
+    });
+</script>
+</body>
+</html>

@@ -1,8 +1,18 @@
+# Web框架
 Flask==3.0.0
 Flask-SQLAlchemy==3.1.1
+
+# 数据处理和Excel导出
 pandas==2.1.4
 openpyxl==3.1.2
 python-dateutil==2.8.2
+
+# 定时任务
+APScheduler==3.10.4
+
+# 打包工具（仅用于构建exe）
 pyinstaller==6.3.0
+
+# 系统托盘（可选）
 pystray==0.19.5
 Pillow==10.1.0

@@ -31,8 +31,12 @@ wheels/
 *.db
 *.sqlite
 *.sqlite3
-data/*.db
-instance/*.db
+data/
+instance/
+
+# Database Backups
+db_backups/
+backups/
 
 # IDE
 .idea/
@@ -48,7 +52,22 @@ desktop.ini
 
 # Logs
 *.log
+logs/
+*.log.*
+
+# Uploads
+uploads/
 
 # Environment variables
 .env
 .env.local
+
+# Backup config
+backup_config.json
+
+# User config (contains sensitive data)
+config.ini
+
+# Error page templates (auto-generated)
+# templates/404.html
+# templates/500.html

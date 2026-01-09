@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}500 - 服务器错误{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="card shadow-lg" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); color: white; border: none;">
+                <div class="card-body py-5">
+                    <i class="bi bi-bug" style="font-size: 5rem; opacity: 0.8;"></i>
+                    <h1 class="display-1 fw-bold mt-3">500</h1>
+                    <h3 class="mb-4">服务器错误</h3>
+                    <p class="lead mb-4">抱歉，服务器遇到了一些问题，请稍后再试。</p>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="/" class="btn btn-light btn-lg">
+                            <i class="bi bi-house-door"></i> 返回首页
+                        </a>
+                        <button onclick="location.reload()" class="btn btn-outline-light btn-lg">
+                            <i class="bi bi-arrow-clockwise"></i> 刷新页面
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

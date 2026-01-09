@@ -44,6 +44,16 @@
                         <i class="bi bi-exclamation-triangle"></i> 故障记录
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance" type="button" role="tab">
+                        <i class="bi bi-tools"></i> 维护记录
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab">
+                        <i class="bi bi-file-earmark-text"></i> 文件管理
+                    </button>
+                </li>
             </ul>
         </div>
         <div class="card-body">
@@ -125,6 +135,50 @@
                                 <tr><td colspan="9" class="text-center" style="color: #94a3b8;">加载中...</td></tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- 维护记录 -->
+                <div class="tab-pane fade" id="maintenance" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6><i class="bi bi-tools"></i> 维护记录</h6>
+                        <button class="btn btn-sm btn-info text-white" onclick="showAddMaintenanceModal()">
+                            <i class="bi bi-plus"></i> 添加维护记录
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>操作者</th>
+                                    <th>维护日期</th>
+                                    <th>维护类型</th>
+                                    <th>维护内容</th>
+                                    <th>上次检定日期</th>
+                                    <th>检定有效期（月）</th>
+                                    <th>下次检定日期</th>
+                                    <th>维护费用</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="maintenanceTableBody">
+                                <tr><td colspan="10" class="text-center" style="color: #94a3b8;">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 文件管理 -->
+                <div class="tab-pane fade" id="files" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6><i class="bi bi-file-earmark-text"></i> 文件管理</h6>
+                        <button class="btn btn-sm btn-primary" onclick="showUploadModal()">
+                            <i class="bi bi-cloud-upload"></i> 上传文件
+                        </button>
+                    </div>
+                    <div class="row" id="filesContainer">
+                        <div class="col-12 text-center" style="color: #94a3b8;">加载中...</div>
                     </div>
                 </div>
             </div>
@@ -277,6 +331,192 @@
         </div>
     </div>
 </div>
+
+<!-- 添加维护记录模态框 -->
+<div class="modal fade" id="addMaintenanceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="bi bi-tools"></i> 添加维护记录</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="maintenanceForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">操作者 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="maintenance_operator" required>
+                                <option value="">请选择</option>
+                                <option value="陈凯">陈凯</option>
+                                <option value="严峻">严峻</option>
+                                <option value="王丽华">王丽华</option>
+                                <option value="艾丹妮">艾丹妮</option>
+                                <option value="吴宜骏">吴宜骏</option>
+                                <option value="张伟">张伟</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">维护日期 <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="maintenance_date" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">维护类型</label>
+                            <select class="form-select" id="maintenance_type">
+                                <option value="">请选择</option>
+                                <option value="日常维护">日常维护</option>
+                                <option value="检定校准">检定校准</option>
+                                <option value="大修">大修</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">维护费用（元）</label>
+                            <input type="number" class="form-control" id="maintenance_cost" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">维护内容</label>
+                        <textarea class="form-control" id="maintenance_content" rows="3" placeholder="请描述维护内容"></textarea>
+                    </div>
+                    <hr>
+                    <h6 class="mb-3"><i class="bi bi-calendar-check"></i> 检定信息（可选）</h6>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 填写以下信息后，系统将自动计算下次检定日期，并同步更新备件的检定信息
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">上次检定日期</label>
+                            <input type="date" class="form-control" id="maintenance_last_inspection">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">检定有效期（月）</label>
+                            <input type="number" class="form-control" id="maintenance_validity_period" min="1" placeholder="例如：12">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea class="form-control" id="maintenance_remarks" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-info text-white" onclick="submitMaintenanceRecord()">提交</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑维护记录模态框 -->
+<div class="modal fade" id="editMaintenanceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title"><i class="bi bi-pencil"></i> 编辑维护记录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMaintenanceForm">
+                    <input type="hidden" id="edit_maintenance_id">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">操作者 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="edit_maintenance_operator" required>
+                                <option value="">请选择</option>
+                                <option value="陈凯">陈凯</option>
+                                <option value="严峻">严峻</option>
+                                <option value="王丽华">王丽华</option>
+                                <option value="艾丹妮">艾丹妮</option>
+                                <option value="吴宜骏">吴宜骏</option>
+                                <option value="张伟">张伟</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">维护日期 <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="edit_maintenance_date" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">维护类型</label>
+                            <select class="form-select" id="edit_maintenance_type">
+                                <option value="">请选择</option>
+                                <option value="日常维护">日常维护</option>
+                                <option value="检定校准">检定校准</option>
+                                <option value="大修">大修</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">维护费用（元）</label>
+                            <input type="number" class="form-control" id="edit_maintenance_cost" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">维护内容</label>
+                        <textarea class="form-control" id="edit_maintenance_content" rows="3" placeholder="请描述维护内容"></textarea>
+                    </div>
+                    <hr>
+                    <h6 class="mb-3"><i class="bi bi-calendar-check"></i> 检定信息（可选）</h6>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 填写以下信息后，系统将自动计算下次检定日期，并同步更新备件的检定信息
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">上次检定日期</label>
+                            <input type="date" class="form-control" id="edit_maintenance_last_inspection">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">检定有效期（月）</label>
+                            <input type="number" class="form-control" id="edit_maintenance_validity_period" min="1" placeholder="例如：12">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea class="form-control" id="edit_maintenance_remarks" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-warning" onclick="updateMaintenanceRecord()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 上传文件模态框 -->
+<div class="modal fade" id="uploadFileModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-cloud-upload"></i> 上传文件</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">选择文件 <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="file_input" required>
+                        <div class="form-text">支持的文件类型：图片(png/jpg/gif)、文档(pdf/doc/docx)、表格(xls/xlsx)、压缩包(zip/rar)等</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea class="form-control" id="file_remarks" rows="2" placeholder="可选：说明文件用途或内容"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitUpload()">
+                    <i class="bi bi-upload"></i> 上传
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -288,6 +528,8 @@
         loadInboundRecords();
         loadOutboundRecords();
         loadFaultRecords();
+        loadMaintenanceRecords();
+        loadAttachments();
     });
 
     // 加载备件信息
@@ -316,8 +558,8 @@
                     <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">设备类型：</strong><span style="color: #334155; font-weight: 500;">${part.device_type || '-'}</span></p>
                     <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">规格型号：</strong><span style="color: #334155; font-weight: 500;">${part.specifications || '-'}</span></p>
                     <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">生产厂家：</strong><span style="color: #334155; font-weight: 500;">${part.manufacturer || '-'}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">产品编号：</strong><span style="color: #334155; font-weight: 500;">${part.product_number || '-'}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">归属：</strong><span style="color: #334155; font-weight: 500;">${part.ownership || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">出厂编号：</strong><span style="color: #334155; font-weight: 500;">${part.product_number || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">系统：</strong><span style="color: #334155; font-weight: 500;">${part.ownership || '-'}</span></p>
                 </div>
                 <div class="col-md-6">
                     <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">使用状态：</strong><span class="badge badge-status status-${part.usage_status}">${part.usage_status}</span></p>
@@ -558,6 +800,204 @@
         });
     }
 
+    // 加载维护记录
+    function loadMaintenanceRecords() {
+        $.ajax({
+            url: '/api/maintenance-records',
+            method: 'GET',
+            data: { spare_part_id: partId },
+            success: function(response) {
+                if (response.success) {
+                    displayMaintenanceRecords(response.data);
+                }
+            }
+        });
+    }
+
+    function displayMaintenanceRecords(records) {
+        const tbody = $('#maintenanceTableBody');
+        tbody.empty();
+
+        if (records.length === 0) {
+            tbody.append('<tr><td colspan="10" class="text-center" style="color: #94a3b8;">暂无记录</td></tr>');
+            return;
+        }
+
+        records.forEach(function(record) {
+            // 维护内容截断显示
+            let contentDisplay = '-';
+            if (record.maintenance_content) {
+                const content = record.maintenance_content;
+                if (content.length > 20) {
+                    contentDisplay = `<span title="${content}" style="cursor: help;">${content.substring(0, 20)}...</span>`;
+                } else {
+                    contentDisplay = content;
+                }
+            }
+            
+            tbody.append(`
+                <tr>
+                    <td>${record.id}</td>
+                    <td>${record.operator_name}</td>
+                    <td>${record.maintenance_date}</td>
+                    <td>${record.maintenance_type || '-'}</td>
+                    <td>${contentDisplay}</td>
+                    <td>${record.last_inspection_date || '-'}</td>
+                    <td>${record.inspection_validity_period || '-'}</td>
+                    <td>${record.next_inspection_date || '-'}</td>
+                    <td>${record.maintenance_cost ? '￥' + record.maintenance_cost : '-'}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-primary" onclick="editMaintenanceRecord(${record.id})" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteMaintenanceRecord(${record.id})" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `);
+        });
+    }
+
+    // 显示添加维护记录模态框
+    function showAddMaintenanceModal() {
+        $('#maintenanceForm')[0].reset();
+        // 设置默认日期为今天
+        const today = new Date().toISOString().split('T')[0];
+        $('#maintenance_date').val(today);
+        new bootstrap.Modal(document.getElementById('addMaintenanceModal')).show();
+    }
+
+    function submitMaintenanceRecord() {
+        const data = {
+            spare_part_id: partId,
+            operator_name: $('#maintenance_operator').val(),
+            maintenance_date: $('#maintenance_date').val(),
+            maintenance_type: $('#maintenance_type').val(),
+            maintenance_content: $('#maintenance_content').val(),
+            last_inspection_date: $('#maintenance_last_inspection').val(),
+            inspection_validity_period: $('#maintenance_validity_period').val() ? parseInt($('#maintenance_validity_period').val()) : null,
+            maintenance_cost: $('#maintenance_cost').val() ? parseFloat($('#maintenance_cost').val()) : null,
+            remarks: $('#maintenance_remarks').val()
+        };
+
+        if (!data.operator_name || !data.maintenance_date) {
+            showAlert('请填写必填项', 'warning');
+            return;
+        }
+
+        $.ajax({
+            url: '/api/maintenance-records',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('维护记录添加成功，备件信息已同步更新', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addMaintenanceModal')).hide();
+                    loadMaintenanceRecords();
+                    // 重新加载备件信息以更新检定日期
+                    loadSparePartInfo();
+                }
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                showAlert('添加失败：' + (response ? response.message : '网络错误'), 'danger');
+            }
+        });
+    }
+
+    function deleteMaintenanceRecord(recordId) {
+        if (!confirm('确定要删除这条维护记录吗？')) {
+            return;
+        }
+
+        $.ajax({
+            url: `/api/maintenance-records/${recordId}`,
+            method: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    showAlert('维护记录删除成功', 'success');
+                    loadMaintenanceRecords();
+                }
+            },
+            error: function() {
+                showAlert('删除失败', 'danger');
+            }
+        });
+    }
+
+    // 编辑维护记录
+    function editMaintenanceRecord(recordId) {
+        // 获取记录详情
+        $.ajax({
+            url: `/api/maintenance-records/${recordId}`,
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    const record = response.data;
+                    // 填充表单
+                    $('#edit_maintenance_id').val(record.id);
+                    $('#edit_maintenance_operator').val(record.operator_name);
+                    $('#edit_maintenance_date').val(record.maintenance_date);
+                    $('#edit_maintenance_type').val(record.maintenance_type || '');
+                    $('#edit_maintenance_cost').val(record.maintenance_cost || '');
+                    $('#edit_maintenance_content').val(record.maintenance_content || '');
+                    $('#edit_maintenance_last_inspection').val(record.last_inspection_date || '');
+                    $('#edit_maintenance_validity_period').val(record.inspection_validity_period || '');
+                    $('#edit_maintenance_remarks').val(record.remarks || '');
+                    
+                    // 显示模态框
+                    new bootstrap.Modal(document.getElementById('editMaintenanceModal')).show();
+                }
+            },
+            error: function() {
+                showAlert('获取记录详情失败', 'danger');
+            }
+        });
+    }
+
+    function updateMaintenanceRecord() {
+        const recordId = $('#edit_maintenance_id').val();
+        const data = {
+            operator_name: $('#edit_maintenance_operator').val(),
+            maintenance_date: $('#edit_maintenance_date').val(),
+            maintenance_type: $('#edit_maintenance_type').val(),
+            maintenance_content: $('#edit_maintenance_content').val(),
+            last_inspection_date: $('#edit_maintenance_last_inspection').val(),
+            inspection_validity_period: $('#edit_maintenance_validity_period').val() ? parseInt($('#edit_maintenance_validity_period').val()) : null,
+            maintenance_cost: $('#edit_maintenance_cost').val() ? parseFloat($('#edit_maintenance_cost').val()) : null,
+            remarks: $('#edit_maintenance_remarks').val()
+        };
+
+        if (!data.operator_name || !data.maintenance_date) {
+            showAlert('请填写必填项', 'warning');
+            return;
+        }
+
+        $.ajax({
+            url: `/api/maintenance-records/${recordId}`,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('维护记录更新成功，备件信息已同步更新', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('editMaintenanceModal')).hide();
+                    loadMaintenanceRecords();
+                    // 重新加载备件信息以更新检定日期
+                    loadSparePartInfo();
+                }
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                showAlert('更新失败：' + (response ? response.message : '网络错误'), 'danger');
+            }
+        });
+    }
+
     // 导出记录
     function exportRecords() {
         window.location.href = `/api/export/records?spare_part_id=${partId}`;
@@ -574,6 +1014,201 @@
         setTimeout(function() {
             alert.alert('close');
         }, 3000);
+    }
+
+    // 加载附件列表
+    function loadAttachments() {
+        $.ajax({
+            url: `/api/attachments/${partId}`,
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    displayAttachments(response.data);
+                }
+            },
+            error: function() {
+                $('#filesContainer').html('<div class="col-12 text-center text-danger">加载失败</div>');
+            }
+        });
+    }
+
+    // 显示附件列表
+    function displayAttachments(attachments) {
+        const container = $('#filesContainer');
+        container.empty();
+
+        if (attachments.length === 0) {
+            container.append('<div class="col-12 text-center" style="color: #94a3b8;">还没有上传任何文件</div>');
+            return;
+        }
+
+        // 使用列表形式显示
+        let listHtml = '<div class="col-12"><div class="list-group">';
+        
+        attachments.forEach(function(att) {
+            const fileSize = (att.file_size / 1024).toFixed(2); // KB
+            const fileSizeMB = (att.file_size / (1024 * 1024)).toFixed(2); // MB
+            const displaySize = att.file_size > 1024 * 1024 ? fileSizeMB + ' MB' : fileSize + ' KB';
+            const fileIcon = getFileIcon(att.filename);
+            const uploadDate = att.upload_date.split(' ')[0]; // 只显示日期部分
+            
+            listHtml += `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="flex-grow-1 me-3">
+                            <h6 class="mb-1">
+                                <i class="bi ${fileIcon}"></i> 
+                                <strong>${att.filename}</strong>
+                            </h6>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3"></i> ${uploadDate}
+                                <span class="ms-2"><i class="bi bi-hdd"></i> ${displaySize}</span>
+                                ${att.remarks ? '<span class="ms-2"><i class="bi bi-chat-left-text"></i> ' + att.remarks + '</span>' : ''}
+                            </small>
+                        </div>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="/api/attachments/download/${att.id}" class="btn btn-outline-primary" title="下载">
+                                <i class="bi bi-download"></i> 下载
+                            </a>
+                            <button class="btn btn-outline-danger" onclick="deleteAttachment(${att.id})" title="删除">
+                                <i class="bi bi-trash"></i> 删除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        listHtml += '</div></div>';
+        container.append(listHtml);
+    }
+
+    // 根据文件名获取图标
+    function getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const iconMap = {
+            'pdf': 'bi-file-earmark-pdf-fill text-danger',
+            'doc': 'bi-file-earmark-word-fill text-primary',
+            'docx': 'bi-file-earmark-word-fill text-primary',
+            'xls': 'bi-file-earmark-excel-fill text-success',
+            'xlsx': 'bi-file-earmark-excel-fill text-success',
+            'png': 'bi-file-earmark-image-fill text-info',
+            'jpg': 'bi-file-earmark-image-fill text-info',
+            'jpeg': 'bi-file-earmark-image-fill text-info',
+            'gif': 'bi-file-earmark-image-fill text-info',
+            'bmp': 'bi-file-earmark-image-fill text-info',
+            'zip': 'bi-file-earmark-zip-fill text-warning',
+            'rar': 'bi-file-earmark-zip-fill text-warning',
+            'txt': 'bi-file-earmark-text-fill'
+        };
+        return iconMap[ext] || 'bi-file-earmark-fill';
+    }
+
+    // 显示上传模态框
+    function showUploadModal() {
+        $('#uploadForm')[0].reset();
+        new bootstrap.Modal(document.getElementById('uploadFileModal')).show();
+    }
+
+    // 提交上传
+    function submitUpload() {
+        const fileInput = document.getElementById('file_input');
+        const remarks = $('#file_remarks').val();
+
+        if (!fileInput.files || fileInput.files.length === 0) {
+            showAlert('请选择文件', 'warning');
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const maxSize = 100 * 1024 * 1024; // 100MB
+        
+        if (file.size > maxSize) {
+            showAlert('文件大小超过100MB限制', 'warning');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('spare_part_id', partId);
+        formData.append('remarks', remarks);
+
+        console.log('开始上传文件:', file.name, '大小:', (file.size / 1024).toFixed(2), 'KB');
+
+        // 显示上传进度
+        const uploadBtn = $('button[onclick="submitUpload()"]');
+        const originalText = uploadBtn.html();
+        uploadBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>上传中...');
+
+        $.ajax({
+            url: '/api/attachments/upload',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            timeout: 120000, // 120秒超时
+            success: function(response) {
+                console.log('上传响应:', response);
+                if (response.success) {
+                    showAlert('文件上传成功', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('uploadFileModal')).hide();
+                    $('#file_input').val('');
+                    $('#file_remarks').val('');
+                    loadAttachments();
+                } else {
+                    showAlert('上传失败：' + response.message, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('上传失败:', status, error, xhr);
+                let errorMsg = '网络错误，请稍后重试';
+                
+                if (xhr.status === 413) {
+                    errorMsg = '文件大小超过限制';
+                } else if (xhr.status === 400 || xhr.status === 500) {
+                    try {
+                        const response = xhr.responseJSON;
+                        if (response && response.message) {
+                            errorMsg = response.message;
+                        }
+                    } catch (e) {
+                        errorMsg = '服务器错误: ' + xhr.statusText;
+                    }
+                } else if (status === 'timeout') {
+                    errorMsg = '上传超时，请检查网络连接或减小文件大小';
+                } else if (status === 'error') {
+                    errorMsg = '无法连接到服务器，请检查服务器是否运行';
+                }
+                
+                showAlert('上传失败：' + errorMsg, 'danger');
+            },
+            complete: function() {
+                uploadBtn.prop('disabled', false).html(originalText);
+            }
+        });
+    }
+
+    // 删除附件
+    function deleteAttachment(attachmentId) {
+        if (!confirm('确定要删除这个文件吗？')) {
+            return;
+        }
+
+        $.ajax({
+            url: `/api/attachments/${attachmentId}`,
+            method: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    showAlert('文件删除成功', 'success');
+                    loadAttachments();
+                } else {
+                    showAlert('删除失败：' + response.message, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('网络错误，请稍后重试', 'danger');
+            }
+        });
     }
 </script>
 {% endblock %}

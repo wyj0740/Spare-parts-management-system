@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>历史文件管理 - 备品备件管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --success-color: #27ae60;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --light-bg: #ecf0f1;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        .card-header {
+            background-color: white;
+            border-bottom: 2px solid var(--light-bg);
+            font-weight: 600;
+        }
+
+        .btn-group .btn {
+            margin: 0 2px;
+        }
+
+        .list-group-item {
+            border-left: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .list-group-item:hover {
+            border-left-color: var(--primary-color);
+            background-color: #f8f9fa;
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页面头部 -->
+    <div class="page-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="bi bi-archive"></i> 历史文件管理</h2>
+                    <p class="mb-0">管理开发前已有的文档和资料</p>
+                </div>
+                <a href="/" class="btn btn-light">
+                    <i class="bi bi-arrow-left"></i> 返回主页
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容 -->
+    <div class="container mb-5">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> 文件列表</h5>
+                    <button class="btn btn-primary" onclick="showUploadModal()">
+                        <i class="bi bi-cloud-upload"></i> 上传文件
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <select class="form-select" id="categoryFilter" onchange="loadDocuments()">
+                            <option value="">全部分类</option>
+                            <option value="技术文档">技术文档</option>
+                            <option value="操作手册">操作手册</option>
+                            <option value="设计图纸">设计图纸</option>
+                            <option value="测试报告">测试报告</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="documentsContainer">
+                    <div class="text-center" style="color: #94a3b8;">加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传文件模态框 -->
+    <div class="modal fade" id="uploadFileModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-cloud-upload"></i> 上传历史文件</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label class="form-label">选择文件 <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="file_input" required>
+                            <div class="form-text">支持的文件类型：图片(png/jpg/gif)、文档(pdf/doc/docx)、表格(xls/xlsx)、压缩包(zip/rar)等</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">文件分类</label>
+                            <select class="form-select" id="file_category">
+                                <option value="">请选择</option>
+                                <option value="技术文档">技术文档</option>
+                                <option value="操作手册">操作手册</option>
+                                <option value="设计图纸">设计图纸</option>
+                                <option value="测试报告">测试报告</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">备注</label>
+                            <textarea class="form-control" id="file_remarks" rows="2" placeholder="可选：说明文件用途或内容"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="submitUpload()">
+                        <i class="bi bi-upload"></i> 上传
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示框容器 -->
+    <div id="alertContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // 显示提示信息
+    function showAlert(message, type = 'info') {
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        $('#alertContainer').append(alertHtml);
+        
+        setTimeout(function() {
+            $('#alertContainer .alert').first().alert('close');
+        }, 5000);
+    }
+
+    // 页面加载时获取文件列表
+    $(document).ready(function() {
+        loadDocuments();
+    });
+
+    // 加载文件列表
+    function loadDocuments() {
+        const category = $('#categoryFilter').val();
+        $.ajax({
+            url: '/api/historical-documents',
+            method: 'GET',
+            data: { category: category },
+            success: function(response) {
+                if (response.success) {
+                    displayDocuments(response.data);
+                }
+            },
+            error: function() {
+                $('#documentsContainer').html('<div class="text-center text-danger">加载失败</div>');
+            }
+        });
+    }
+
+    // 显示文件列表
+    function displayDocuments(documents) {
+        const container = $('#documentsContainer');
+        container.empty();
+
+        if (documents.length === 0) {
+            container.append('<div class="text-center" style="color: #94a3b8;">还没有上传任何文件</div>');
+            return;
+        }
+
+        let listHtml = '<div class="list-group">';
+        
+        documents.forEach(function(doc) {
+            const fileSize = (doc.file_size / 1024).toFixed(2);
+            const fileSizeMB = (doc.file_size / (1024 * 1024)).toFixed(2);
+            const displaySize = doc.file_size > 1024 * 1024 ? fileSizeMB + ' MB' : fileSize + ' KB';
+            const fileIcon = getFileIcon(doc.filename);
+            const uploadDate = doc.upload_date.split(' ')[0];
+            
+            listHtml += `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="flex-grow-1 me-3">
+                            <h6 class="mb-1">
+                                <i class="bi ${fileIcon} file-icon"></i> 
+                                <strong>${doc.filename}</strong>
+                            </h6>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3"></i> ${uploadDate}
+                                <span class="ms-2"><i class="bi bi-hdd"></i> ${displaySize}</span>
+                                ${doc.category ? '<span class="ms-2"><span class="badge bg-info">' + doc.category + '</span></span>' : ''}
+                                ${doc.remarks ? '<span class="ms-2"><i class="bi bi-chat-left-text"></i> ' + doc.remarks + '</span>' : ''}
+                            </small>
+                        </div>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="/api/historical-documents/download/${doc.id}" class="btn btn-outline-primary" title="下载">
+                                <i class="bi bi-download"></i> 下载
+                            </a>
+                            <button class="btn btn-outline-danger" onclick="deleteDocument(${doc.id})" title="删除">
+                                <i class="bi bi-trash"></i> 删除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        listHtml += '</div>';
+        container.append(listHtml);
+    }
+
+    // 根据文件名获取图标
+    function getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const iconMap = {
+            'pdf': 'bi-file-pdf-fill text-danger',
+            'doc': 'bi-file-word-fill text-primary',
+            'docx': 'bi-file-word-fill text-primary',
+            'xls': 'bi-file-excel-fill text-success',
+            'xlsx': 'bi-file-excel-fill text-success',
+            'ppt': 'bi-file-ppt-fill text-warning',
+            'pptx': 'bi-file-ppt-fill text-warning',
+            'zip': 'bi-file-zip-fill text-secondary',
+            'rar': 'bi-file-zip-fill text-secondary',
+            'jpg': 'bi-file-image-fill text-info',
+            'jpeg': 'bi-file-image-fill text-info',
+            'png': 'bi-file-image-fill text-info',
+            'gif': 'bi-file-image-fill text-info',
+            'txt': 'bi-file-text-fill',
+        };
+        return iconMap[ext] || 'bi-file-earmark-fill';
+    }
+
+    // 显示上传模态框
+    function showUploadModal() {
+        $('#uploadForm')[0].reset();
+        const modal = new bootstrap.Modal(document.getElementById('uploadFileModal'));
+        modal.show();
+    }
+
+    // 提交上传
+    function submitUpload() {
+        const fileInput = document.getElementById('file_input');
+        const category = $('#file_category').val();
+        const remarks = $('#file_remarks').val();
+
+        if (!fileInput.files || fileInput.files.length === 0) {
+            showAlert('请选择文件', 'warning');
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const maxSize = 100 * 1024 * 1024; // 100MB
+        
+        if (file.size > maxSize) {
+            showAlert('文件大小超过100MB限制', 'warning');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', category);
+        formData.append('remarks', remarks);
+
+        console.log('开始上传文件:', file.name, '大小:', (file.size / 1024).toFixed(2), 'KB');
+
+        const uploadBtn = $('button[onclick="submitUpload()"]');
+        const originalText = uploadBtn.html();
+        uploadBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>上传中...');
+
+        $.ajax({
+            url: '/api/historical-documents/upload',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            timeout: 120000,
+            success: function(response) {
+                console.log('上传响应:', response);
+                if (response.success) {
+                    showAlert('文件上传成功', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('uploadFileModal')).hide();
+                    $('#file_input').val('');
+                    $('#file_category').val('');
+                    $('#file_remarks').val('');
+                    loadDocuments();
+                } else {
+                    showAlert('上传失败：' + response.message, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('上传失败:', status, error, xhr);
+                let errorMsg = '网络错误，请稍后重试';
+                
+                if (xhr.status === 413) {
+                    errorMsg = '文件大小超过限制';
+                } else if (xhr.status === 400 || xhr.status === 500) {
+                    try {
+                        const response = xhr.responseJSON;
+                        if (response && response.message) {
+                            errorMsg = response.message;
+                        }
+                    } catch (e) {
+                        errorMsg = '服务器错误: ' + xhr.statusText;
+                    }
+                } else if (status === 'timeout') {
+                    errorMsg = '上传超时，请检查网络连接或减小文件大小';
+                } else if (status === 'error') {
+                    errorMsg = '无法连接到服务器，请检查服务器是否运行';
+                }
+                
+                showAlert('上传失败：' + errorMsg, 'danger');
+            },
+            complete: function() {
+                uploadBtn.prop('disabled', false).html(originalText);
+            }
+        });
+    }
+
+    // 删除文件
+    function deleteDocument(docId) {
+        if (!confirm('确定要删除这个文件吗？')) {
+            return;
+        }
+
+        $.ajax({
+            url: `/api/historical-documents/${docId}`,
+            method: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    showAlert('文件删除成功', 'success');
+                    loadDocuments();
+                } else {
+                    showAlert('删除失败：' + response.message, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('网络错误，请稍后重试', 'danger');
+            }
+        });
+    }
+    </script>
+</body>
+</html>

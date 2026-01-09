@@ -454,6 +454,7 @@
             color: inherit;
         }
         
+
         /* 响应式优化 */
         @media (max-width: 768px) {
             .navbar-brand {
@@ -488,6 +489,16 @@
                             <i class="bi bi-plus-circle"></i> 创建备件
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/backup">
+                            <i class="bi bi-database-fill-down"></i> 数据备份
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="logout(); return false;">
+                            <i class="bi bi-box-arrow-right"></i> 登出
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -511,6 +522,26 @@
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <!-- jQuery -->
     <script src="{{ url_for('static', filename='js/jquery-3.6.0.min.js') }}"></script>
+    
+    <script>
+    // 登出功能
+    function logout() {
+        if (confirm('确定要登出吗？')) {
+            $.ajax({
+                url: '/api/logout',
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        window.location.href = '/login';
+                    }
+                },
+                error: function() {
+                    window.location.href = '/login';
+                }
+            });
+        }
+    }
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>
