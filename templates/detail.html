@@ -1,0 +1,579 @@
+{% extends "base.html" %}
+
+{% block title %}备件详情 - 备品备件管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 返回按钮 -->
+    <div class="mb-3">
+        <button class="btn btn-secondary" onclick="window.location.href='/'">
+            <i class="bi bi-arrow-left"></i> 返回列表
+        </button>
+    </div>
+
+    <!-- 备件基本信息 -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> 备件基本信息</h5>
+        </div>
+        <div class="card-body" id="sparePartInfo">
+            <div class="text-center" style="color: #cbd5e1;">
+                <div class="spinner-border" role="status" style="color: #3b82f6;">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab导航 -->
+    <div class="card mt-3">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="inbound-tab" data-bs-toggle="tab" data-bs-target="#inbound" type="button" role="tab">
+                        <i class="bi bi-box-arrow-in-down"></i> 入库记录
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="outbound-tab" data-bs-toggle="tab" data-bs-target="#outbound" type="button" role="tab">
+                        <i class="bi bi-box-arrow-up"></i> 出库记录
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="fault-tab" data-bs-toggle="tab" data-bs-target="#fault" type="button" role="tab">
+                        <i class="bi bi-exclamation-triangle"></i> 故障记录
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content">
+                <!-- 入库记录 -->
+                <div class="tab-pane fade show active" id="inbound" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6><i class="bi bi-box-arrow-in-down"></i> 入库记录</h6>
+                        <button class="btn btn-sm btn-success" onclick="showAddInboundModal()">
+                            <i class="bi bi-plus"></i> 添加入库记录
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>操作者</th>
+                                    <th>入库时间</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inboundTableBody">
+                                <tr><td colspan="4" class="text-center" style="color: #94a3b8;">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 出库记录 -->
+                <div class="tab-pane fade" id="outbound" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6><i class="bi bi-box-arrow-up"></i> 出库记录</h6>
+                        <button class="btn btn-sm btn-warning" onclick="showAddOutboundModal()">
+                            <i class="bi bi-plus"></i> 添加出库记录
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>操作者</th>
+                                    <th>出库时间</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody id="outboundTableBody">
+                                <tr><td colspan="4" class="text-center" style="color: #94a3b8;">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 故障记录 -->
+                <div class="tab-pane fade" id="fault" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6><i class="bi bi-exclamation-triangle"></i> 故障记录</h6>
+                        <button class="btn btn-sm btn-danger" onclick="showAddFaultModal()">
+                            <i class="bi bi-plus"></i> 添加故障记录
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>操作者</th>
+                                    <th>故障时间</th>
+                                    <th>故障描述</th>
+                                    <th>故障类型</th>
+                                    <th>维修状态</th>
+                                    <th>维修完成日期</th>
+                                    <th>维修费用</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody id="faultTableBody">
+                                <tr><td colspan="9" class="text-center" style="color: #94a3b8;">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 导出按钮 -->
+            <div class="mt-3">
+                <button class="btn btn-success" onclick="exportRecords()">
+                    <i class="bi bi-file-earmark-excel"></i> 导出所有记录
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加入库记录模态框 -->
+<div class="modal fade" id="addInboundModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">添加入库记录</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="inboundForm">
+                    <div class="mb-3">
+                        <label class="form-label">操作者 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="inbound_operator" required>
+                            <option value="">请选择</option>
+                            <option value="陈凯">陈凯</option>
+                            <option value="严峻">严峻</option>
+                            <option value="王丽华">王丽华</option>
+                            <option value="艾丹妮">艾丹妮</option>
+                            <option value="吴宜骏">吴宜骏</option>
+                            <option value="张伟">张伟</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea class="form-control" id="inbound_remarks" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="submitInboundRecord()">提交</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加出库记录模态框 -->
+<div class="modal fade" id="addOutboundModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">添加出库记录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="outboundForm">
+                    <div class="mb-3">
+                        <label class="form-label">操作者 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="outbound_operator" required>
+                            <option value="">请选择</option>
+                            <option value="陈凯">陈凯</option>
+                            <option value="严峻">严峻</option>
+                            <option value="王丽华">王丽华</option>
+                            <option value="艾丹妮">艾丹妮</option>
+                            <option value="吴宜骏">吴宜骏</option>
+                            <option value="张伟">张伟</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea class="form-control" id="outbound_remarks" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-warning" onclick="submitOutboundRecord()">提交</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加故障记录模态框 -->
+<div class="modal fade" id="addFaultModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">添加故障记录</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="faultForm">
+                    <div class="mb-3">
+                        <label class="form-label">操作者 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="fault_operator" required>
+                            <option value="">请选择</option>
+                            <option value="陈凯">陈凯</option>
+                            <option value="严峻">严峻</option>
+                            <option value="王丽华">王丽华</option>
+                            <option value="艾丹妮">艾丹妮</option>
+                            <option value="吴宜骏">吴宜骏</option>
+                            <option value="张伟">张伟</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">故障描述 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="fault_description" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">故障类型</label>
+                        <select class="form-select" id="fault_type">
+                            <option value="">请选择</option>
+                            <option value="机械故障">机械故障</option>
+                            <option value="电气故障">电气故障</option>
+                            <option value="软件故障">软件故障</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">维修状态</label>
+                        <select class="form-select" id="fault_repair_status">
+                            <option value="待维修" selected>待维修</option>
+                            <option value="维修中">维修中</option>
+                            <option value="已维修">已维修</option>
+                            <option value="无法修复">无法修复</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">维修完成日期</label>
+                        <input type="date" class="form-control" id="fault_repair_date">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">维修费用（元）</label>
+                        <input type="number" class="form-control" id="fault_repair_cost" step="0.01" min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea class="form-control" id="fault_remarks" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="submitFaultRecord()">提交</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const partId = {{ part_id }};
+
+    $(document).ready(function() {
+        loadSparePartInfo();
+        loadInboundRecords();
+        loadOutboundRecords();
+        loadFaultRecords();
+    });
+
+    // 加载备件信息
+    function loadSparePartInfo() {
+        $.ajax({
+            url: `/api/spare-parts/${partId}`,
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    displaySparePartInfo(response.data);
+                }
+            },
+            error: function() {
+                $('#sparePartInfo').html('<p class="text-danger">加载失败</p>');
+            }
+        });
+    }
+
+    // 显示备件信息
+    function displaySparePartInfo(part) {
+        const html = `
+            <div class="row" style="font-size: 1.05rem;">
+                <div class="col-md-6">
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">备件名称：</strong><span style="color: #334155; font-weight: 500;">${part.name}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">资产编号：</strong><span style="color: #334155; font-weight: 500;">${part.asset_number}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">设备类型：</strong><span style="color: #334155; font-weight: 500;">${part.device_type || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">规格型号：</strong><span style="color: #334155; font-weight: 500;">${part.specifications || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">生产厂家：</strong><span style="color: #334155; font-weight: 500;">${part.manufacturer || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">产品编号：</strong><span style="color: #334155; font-weight: 500;">${part.product_number || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">归属：</strong><span style="color: #334155; font-weight: 500;">${part.ownership || '-'}</span></p>
+                </div>
+                <div class="col-md-6">
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">使用状态：</strong><span class="badge badge-status status-${part.usage_status}">${part.usage_status}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">存放地点：</strong><span style="color: #334155; font-weight: 500;">${part.storage_location || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">上次检定日期：</strong><span style="color: #334155; font-weight: 500;">${part.last_inspection_date || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">下次检定日期：</strong><span style="color: #334155; font-weight: 500;">${part.next_inspection_date || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">采购日期：</strong><span style="color: #334155; font-weight: 500;">${part.purchase_date || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">质保期：</strong><span style="color: #334155; font-weight: 500;">${part.warranty_period ? part.warranty_period + ' 月' : '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">单价：</strong><span style="color: #334155; font-weight: 500;">${part.unit_price ? '¥' + part.unit_price : '-'}</span></p>
+                </div>
+                ${part.remarks ? `<div class="col-md-12"><p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">备注：</strong><span style="color: #334155; font-weight: 500;">${part.remarks}</span></p></div>` : ''}
+            </div>
+        `;
+        $('#sparePartInfo').html(html);
+    }
+
+    // 加载入库记录
+    function loadInboundRecords() {
+        $.ajax({
+            url: '/api/inbound-records',
+            method: 'GET',
+            data: { spare_part_id: partId },
+            success: function(response) {
+                if (response.success) {
+                    displayInboundRecords(response.data);
+                }
+            }
+        });
+    }
+
+    function displayInboundRecords(records) {
+        const tbody = $('#inboundTableBody');
+        tbody.empty();
+
+        if (records.length === 0) {
+            tbody.append('<tr><td colspan="4" class="text-center" style="color: #94a3b8;">暂无记录</td></tr>');
+            return;
+        }
+
+        records.forEach(function(record) {
+            tbody.append(`
+                <tr>
+                    <td>${record.id}</td>
+                    <td>${record.operator_name}</td>
+                    <td>${record.inbound_date}</td>
+                    <td>${record.remarks || '-'}</td>
+                </tr>
+            `);
+        });
+    }
+
+    // 加载出库记录
+    function loadOutboundRecords() {
+        $.ajax({
+            url: '/api/outbound-records',
+            method: 'GET',
+            data: { spare_part_id: partId },
+            success: function(response) {
+                if (response.success) {
+                    displayOutboundRecords(response.data);
+                }
+            }
+        });
+    }
+
+    function displayOutboundRecords(records) {
+        const tbody = $('#outboundTableBody');
+        tbody.empty();
+
+        if (records.length === 0) {
+            tbody.append('<tr><td colspan="4" class="text-center" style="color: #94a3b8;">暂无记录</td></tr>');
+            return;
+        }
+
+        records.forEach(function(record) {
+            tbody.append(`
+                <tr>
+                    <td>${record.id}</td>
+                    <td>${record.operator_name}</td>
+                    <td>${record.outbound_date}</td>
+                    <td>${record.remarks || '-'}</td>
+                </tr>
+            `);
+        });
+    }
+
+    // 加载故障记录
+    function loadFaultRecords() {
+        $.ajax({
+            url: '/api/fault-records',
+            method: 'GET',
+            data: { spare_part_id: partId },
+            success: function(response) {
+                if (response.success) {
+                    displayFaultRecords(response.data);
+                }
+            }
+        });
+    }
+
+    function displayFaultRecords(records) {
+        const tbody = $('#faultTableBody');
+        tbody.empty();
+
+        if (records.length === 0) {
+            tbody.append('<tr><td colspan="9" class="text-center" style="color: #94a3b8;">暂无记录</td></tr>');
+            return;
+        }
+
+        records.forEach(function(record) {
+            tbody.append(`
+                <tr>
+                    <td>${record.id}</td>
+                    <td>${record.operator_name}</td>
+                    <td>${record.fault_date}</td>
+                    <td>${record.fault_description}</td>
+                    <td>${record.fault_type || '-'}</td>
+                    <td>${record.repair_status}</td>
+                    <td>${record.repair_date || '-'}</td>
+                    <td>${record.repair_cost ? '¥' + record.repair_cost : '-'}</td>
+                    <td>${record.remarks || '-'}</td>
+                </tr>
+            `);
+        });
+    }
+
+    // 显示添加模态框
+    function showAddInboundModal() {
+        $('#inboundForm')[0].reset();
+        new bootstrap.Modal(document.getElementById('addInboundModal')).show();
+    }
+
+    function showAddOutboundModal() {
+        $('#outboundForm')[0].reset();
+        new bootstrap.Modal(document.getElementById('addOutboundModal')).show();
+    }
+
+    function showAddFaultModal() {
+        $('#faultForm')[0].reset();
+        new bootstrap.Modal(document.getElementById('addFaultModal')).show();
+    }
+
+    // 提交记录
+    function submitInboundRecord() {
+        const data = {
+            spare_part_id: partId,
+            quantity: 1,  // 默认数量为1
+            operator_name: $('#inbound_operator').val(),
+            remarks: $('#inbound_remarks').val()
+        };
+
+        if (!data.operator_name) {
+            showAlert('请选择操作者', 'warning');
+            return;
+        }
+
+        $.ajax({
+            url: '/api/inbound-records',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('入库记录添加成功', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addInboundModal')).hide();
+                    loadInboundRecords();
+                }
+            },
+            error: function() {
+                showAlert('添加失败', 'danger');
+            }
+        });
+    }
+
+    function submitOutboundRecord() {
+        const data = {
+            spare_part_id: partId,
+            quantity: 1,  // 默认数量为1
+            operator_name: $('#outbound_operator').val(),
+            remarks: $('#outbound_remarks').val()
+        };
+
+        if (!data.operator_name) {
+            showAlert('请选择操作者', 'warning');
+            return;
+        }
+
+        $.ajax({
+            url: '/api/outbound-records',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('出库记录添加成功', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addOutboundModal')).hide();
+                    loadOutboundRecords();
+                }
+            },
+            error: function() {
+                showAlert('添加失败', 'danger');
+            }
+        });
+    }
+
+    function submitFaultRecord() {
+        const data = {
+            spare_part_id: partId,
+            operator_name: $('#fault_operator').val(),
+            fault_description: $('#fault_description').val(),
+            fault_type: $('#fault_type').val(),
+            repair_status: $('#fault_repair_status').val(),
+            repair_date: $('#fault_repair_date').val(),
+            repair_cost: $('#fault_repair_cost').val() ? parseFloat($('#fault_repair_cost').val()) : null,
+            remarks: $('#fault_remarks').val()
+        };
+
+        if (!data.operator_name || !data.fault_description) {
+            showAlert('请填写必填项', 'warning');
+            return;
+        }
+
+        $.ajax({
+            url: '/api/fault-records',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('故障记录添加成功', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addFaultModal')).hide();
+                    loadFaultRecords();
+                }
+            },
+            error: function() {
+                showAlert('添加失败', 'danger');
+            }
+        });
+    }
+
+    // 导出记录
+    function exportRecords() {
+        window.location.href = `/api/export/records?spare_part_id=${partId}`;
+    }
+
+    function showAlert(message, type) {
+        const alert = $(`
+            <div class="alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" role="alert" style="z-index: 9999; min-width: 300px;">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `);
+        $('body').append(alert);
+        setTimeout(function() {
+            alert.alert('close');
+        }, 3000);
+    }
+</script>
+{% endblock %}

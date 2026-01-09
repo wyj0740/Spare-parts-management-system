@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}创建备件 - 备品备件管理系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle"></i> 创建新备件</h5>
+                </div>
+                <div class="card-body">
+                    <form id="createSparePartForm">
+                        <div class="row">
+                            <!-- 基本信息 -->
+                            <div class="col-md-12">
+                                <h6 class="border-bottom pb-2 mb-3" style="color: #93c5fd;">基本信息</h6>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">备件名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="assetNumber" class="form-label">资产编号 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="assetNumber" name="asset_number" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="ownership" class="form-label">归属</label>
+                                <select class="form-select" id="ownership" name="ownership">
+                                    <option value="">请选择</option>
+                                    <option value="自观系统">自观系统</option>
+                                    <option value="信息系统">信息系统</option>
+                                    <option value="观测场">观测场</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="productNumber" class="form-label">产品编号</label>
+                                <input type="text" class="form-control" id="productNumber" name="product_number">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="specifications" class="form-label">规格型号</label>
+                                <input type="text" class="form-control" id="specifications" name="specifications">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="manufacturer" class="form-label">生产厂家</label>
+                                <input type="text" class="form-control" id="manufacturer" name="manufacturer">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="usageStatus" class="form-label">使用状态</label>
+                                <select class="form-select" id="usageStatus" name="usage_status">
+                                    <option value="在库" selected>在库</option>
+                                    <option value="在用">在用</option>
+                                    <option value="维修中">维修中</option>
+                                    <option value="报废">报废</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label for="storageLocation" class="form-label">存放地点</label>
+                                <input type="text" class="form-control" id="storageLocation" name="storage_location">
+                            </div>
+                            
+                            <!-- 日期和财务信息 -->
+                            <div class="col-md-12 mt-3">
+                                <h6 class="border-bottom pb-2 mb-3" style="color: #93c5fd;">日期和财务信息</h6>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="purchaseDate" class="form-label">采购日期</label>
+                                <input type="date" class="form-control" id="purchaseDate" name="purchase_date">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="lastInspectionDate" class="form-label">上次检定日期</label>
+                                <input type="date" class="form-control" id="lastInspectionDate" name="last_inspection_date">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="nextInspectionDate" class="form-label">下次检定日期</label>
+                                <input type="date" class="form-control" id="nextInspectionDate" name="next_inspection_date">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="warrantyPeriod" class="form-label">质保期（月）</label>
+                                <input type="number" class="form-control" id="warrantyPeriod" name="warranty_period" min="0">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="unitPrice" class="form-label">单价（元）</label>
+                                <input type="number" class="form-control" id="unitPrice" name="unit_price" step="0.01" min="0">
+                            </div>
+                            
+                            <!-- 备注 -->
+                            <div class="col-md-12 mt-3">
+                                <h6 class="border-bottom pb-2 mb-3" style="color: #93c5fd;">备注信息</h6>
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label for="remarks" class="form-label">备注</label>
+                                <textarea class="form-control" id="remarks" name="remarks" rows="3"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">
+                                <i class="bi bi-x-circle"></i> 取消
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> 创建备件
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        $('#createSparePartForm').submit(function(e) {
+            e.preventDefault();
+            createSparePart();
+        });
+    });
+
+    function createSparePart() {
+        const formData = {
+            name: $('#name').val(),
+            asset_number: $('#assetNumber').val(),
+            ownership: $('#ownership').val(),
+            product_number: $('#productNumber').val(),
+            specifications: $('#specifications').val(),
+            manufacturer: $('#manufacturer').val(),
+            usage_status: $('#usageStatus').val(),
+            storage_location: $('#storageLocation').val(),
+            purchase_date: $('#purchaseDate').val(),
+            last_inspection_date: $('#lastInspectionDate').val(),
+            next_inspection_date: $('#nextInspectionDate').val(),
+            warranty_period: $('#warrantyPeriod').val() ? parseInt($('#warrantyPeriod').val()) : null,
+            unit_price: $('#unitPrice').val() ? parseFloat($('#unitPrice').val()) : null,
+            remarks: $('#remarks').val()
+        };
+
+        // 验证必填项
+        if (!formData.name || !formData.asset_number) {
+            showAlert('请填写必填项（名称和资产编号）', 'warning');
+            return;
+        }
+
+        $.ajax({
+            url: '/api/spare-parts',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('备件创建成功！', 'success');
+                    setTimeout(function() {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    showAlert('创建失败：' + response.message, 'danger');
+                }
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                if (response && response.message) {
+                    showAlert('创建失败：' + response.message, 'danger');
+                } else {
+                    showAlert('网络错误，请稍后重试', 'danger');
+                }
+            }
+        });
+    }
+
+    function showAlert(message, type) {
+        const alert = $(`
+            <div class="alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" role="alert" style="z-index: 9999; min-width: 300px;">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `);
+        $('body').append(alert);
+        setTimeout(function() {
+            alert.alert('close');
+        }, 3000);
+    }
+</script>
+{% endblock %}

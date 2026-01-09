@@ -1,0 +1,625 @@
+{% extends "base.html" %}
+
+{% block title %}备件列表 - 备品备件管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 搜索和筛选区域 -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> 搜索与筛选</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label"><i class="bi bi-search"></i> 关键字搜索</label>
+                    <input type="text" class="form-control" id="keyword" placeholder="名称/资产编号/地点">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label"><i class="bi bi-tag"></i> 使用状态</label>
+                    <select class="form-select" id="usageStatus">
+                        <option value="">全部</option>
+                        <option value="在库">在库</option>
+                        <option value="在用">在用</option>
+                        <option value="维修中">维修中</option>
+                        <option value="报废">报废</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label"><i class="bi bi-geo-alt"></i> 存放地点</label>
+                    <input type="text" class="form-control" id="storageLocation" placeholder="输入地点">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid">
+                        <button class="btn btn-primary" onclick="searchSpareParts()">
+                            <i class="bi bi-search"></i> 搜索
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-success" onclick="exportSpareParts()">
+                            <i class="bi bi-file-earmark-excel"></i> 导出Excel
+                        </button>
+                        <button class="btn btn-warning text-white" onclick="showPendingInspection()">
+                            <i class="bi bi-clock-history"></i> 待检定备件
+                        </button>
+                        <button class="btn btn-info text-white" onclick="resetFilters()">
+                            <i class="bi bi-arrow-clockwise"></i> 重置
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 备件列表 -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list-check"></i> 备件列表</h5>
+            <span class="badge" style="font-size: 1rem; padding: 0.5rem 1rem; border: 2px solid #3b82f6; background: #1e40af; color: #ffffff;">
+                <i class="bi bi-box-seam"></i> 总计：<span id="totalCount" style="font-weight: bold; color: #93c5fd;">0</span> 件
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th style="width: 4%;">ID</th>
+                            <th style="width: 10%;">名称</th>
+                            <th style="width: 8%;">归属</th>
+                            <th style="width: 8%;">存放地点</th>
+                            <th style="width: 8%;">规格型号</th>
+                            <th style="width: 8%;">产品编号</th>
+                            <th style="width: 15%;">倒计时状态条</th>
+                            <th style="width: 7%;">使用状态</th>
+                            <th style="width: 8%;">存放地点</th>
+                            <th style="width: 12%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sparePartsTableBody">
+                        <tr>
+                    <td colspan="10" class="text-center" style="padding: 3rem; color: #cbd5e1;">
+                        <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: #3b82f6;">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mt-3" style="color: #94a3b8;">正在加载数据...</p>
+                    </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑备件模态框 -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil-square"></i> 编辑备件信息</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" id="edit_part_id">
+                    
+                    <!-- 基本信息 -->
+                    <div class="mb-4">
+                        <h6 class="text-white p-2 rounded" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="bi bi-info-circle"></i> 基本信息
+                        </h6>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">备件名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">资产编号 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit_asset_number" required readonly>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">归属</label>
+                            <select class="form-select" id="edit_ownership">
+                                <option value="">请选择</option>
+                                <option value="自观系统">自观系统</option>
+                                <option value="信息系统">信息系统</option>
+                                <option value="观测场">观测场</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">产品编号</label>
+                            <input type="text" class="form-control" id="edit_product_number">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">规格型号</label>
+                            <input type="text" class="form-control" id="edit_specifications">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">生产厂家</label>
+                            <input type="text" class="form-control" id="edit_manufacturer">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">使用状态</label>
+                            <select class="form-select" id="edit_usage_status">
+                                <option value="在库">在库</option>
+                                <option value="在用">在用</option>
+                                <option value="维修中">维修中</option>
+                                <option value="报废">报废</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">存放地点</label>
+                            <input type="text" class="form-control" id="edit_storage_location">
+                        </div>
+                    </div>
+                    
+                    <!-- 日期和财务信息 -->
+                    <div class="mb-4 mt-4">
+                        <h6 class="text-white p-2 rounded" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="bi bi-calendar-check"></i> 日期和财务信息
+                        </h6>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">采购日期</label>
+                            <input type="date" class="form-control" id="edit_purchase_date">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">上次检定日期</label>
+                            <input type="date" class="form-control" id="edit_last_inspection_date">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">下次检定日期</label>
+                            <input type="date" class="form-control" id="edit_next_inspection_date">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">质保期（月）</label>
+                            <input type="number" class="form-control" id="edit_warranty_period" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">单价（元）</label>
+                            <input type="number" class="form-control" id="edit_unit_price" step="0.01" min="0">
+                        </div>
+                    </div>
+                    
+                    <!-- 备注 -->
+                    <div class="mb-4 mt-4">
+                        <h6 class="text-white p-2 rounded" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="bi bi-chat-left-text"></i> 备注信息
+                        </h6>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">备注</label>
+                            <textarea class="form-control" id="edit_remarks" rows="3"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 待检定备件模态框 -->
+<div class="modal fade" id="pendingInspectionModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white;">
+                <h5 class="modal-title"><i class="bi bi-clock-history"></i> 待检定备件列表</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>名称</th>
+                                <th>归属</th>
+                                <th>产品编号</th>
+                                <th>下次检定日期</th>
+                                <th>距离检定</th>
+                                <th>使用状态</th>
+                                <th>存放地点</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingInspectionTableBody">
+                            <tr><td colspan="9" class="text-center text-muted" style="padding: 2rem;">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); color: white;">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> 确认删除</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <div class="text-center mb-3">
+                    <i class="bi bi-trash3" style="font-size: 3rem; color: #ef4444;"></i>
+                </div>
+                <p class="text-center" style="font-size: 1.1rem; color: #f1f5f9;">
+                    确定要删除这个备件吗？<br>
+                    <small class="text-danger" style="color: #fca5a5 !important;">此操作不可恢复，所有相关记录也会被删除。</small>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> 取消</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()"><i class="bi bi-trash"></i> 确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let deletePartId = null;
+
+    // 页面加载时获取备件列表
+    $(document).ready(function() {
+        loadSpareParts();
+    });
+
+    // 加载备件列表
+    function loadSpareParts(filters = {}) {
+        $.ajax({
+            url: '/api/spare-parts',
+            method: 'GET',
+            data: filters,
+            success: function(response) {
+                if (response.success) {
+                    displaySpareParts(response.data);
+                } else {
+                    showAlert('加载失败：' + response.message, 'danger');
+                }
+            },
+            error: function(xhr) {
+                showAlert('网络错误，请稍后重试', 'danger');
+            }
+        });
+    }
+
+    // 显示备件列表
+    function displaySpareParts(parts) {
+        const tbody = $('#sparePartsTableBody');
+        tbody.empty();
+
+        $('#totalCount').text(parts.length);
+
+        if (parts.length === 0) {
+            tbody.append(`
+                <tr>
+                    <td colspan="10" class="text-center" style="color: #94a3b8;">
+                        <i class="bi bi-inbox" style="font-size: 2rem; color: #64748b;"></i>
+                        <p>暂无数据</p>
+                    </td>
+                </tr>
+            `);
+            return;
+        }
+
+        parts.forEach(function(part) {
+            // 检定状态条
+            let inspectionBar = '';
+            if (part.next_inspection_date) {
+                const progress = part.inspection_progress || 0;
+                let progressClass = 'bg-success';
+                let textColor = '#ffffff'; // 白色文字
+                
+                // 根据进度改变颜色
+                if (progress < 20) {
+                    progressClass = 'bg-danger';
+                    textColor = '#ffffff'; // 白色文字
+                } else if (progress < 50) {
+                    progressClass = 'bg-warning';
+                    textColor = '#ffffff'; // 白色文字
+                } else {
+                    textColor = '#ffffff'; // 白色文字
+                }
+                
+                const daysText = part.days_to_inspection !== null ? 
+                    (part.days_to_inspection >= 0 ? `剩余${part.days_to_inspection}天` : `已过期${Math.abs(part.days_to_inspection)}天`) : '';
+                
+                inspectionBar = `
+                    <div style="position: relative; height: 25px;">
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar ${progressClass}" role="progressbar" 
+                                 style="width: ${progress}%;" 
+                                 aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 25px; 
+                                    display: flex; align-items: center; justify-content: center; 
+                                    font-weight: bold; font-size: 14px; color: ${textColor};
+                                    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">
+                            ${daysText}
+                        </div>
+                    </div>
+                `;
+            } else {
+                inspectionBar = '<span class="text-muted" style="font-size: 14px; color: #94a3b8 !important;">无需检定</span>';
+            }
+
+            const row = `
+                <tr>
+                    <td>${part.id}</td>
+                    <td>${part.name}</td>
+                    <td>${part.ownership || '-'}</td>
+                    <td>${part.storage_location || '-'}</td>
+                    <td>${part.specifications || '-'}</td>
+                    <td>${part.product_number || '-'}</td>
+                    <td>${inspectionBar}</td>
+                    <td><span class="badge badge-status status-${part.usage_status}">${part.usage_status}</span></td>
+                    <td>${part.storage_location || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="editPart(${part.id})" title="编辑">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-info" onclick="viewDetail(${part.id})" title="查看详情">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deletePart(${part.id})" title="删除">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    }
+
+    // 搜索备件
+    function searchSpareParts() {
+        const filters = {
+            keyword: $('#keyword').val(),
+            usage_status: $('#usageStatus').val(),
+            storage_location: $('#storageLocation').val()
+        };
+        loadSpareParts(filters);
+    }
+
+    // 重置筛选条件
+    function resetFilters() {
+        $('#keyword').val('');
+        $('#usageStatus').val('');
+        $('#storageLocation').val('');
+        loadSpareParts();
+    }
+
+    // 编辑备件
+    function editPart(partId) {
+        // 获取备件信息
+        $.ajax({
+            url: `/api/spare-parts/${partId}`,
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    const part = response.data;
+                    $('#edit_part_id').val(part.id);
+                    $('#edit_name').val(part.name);
+                    $('#edit_asset_number').val(part.asset_number);
+                    $('#edit_ownership').val(part.ownership || '');
+                    $('#edit_product_number').val(part.product_number || '');
+                    $('#edit_specifications').val(part.specifications || '');
+                    $('#edit_manufacturer').val(part.manufacturer || '');
+                    $('#edit_usage_status').val(part.usage_status);
+                    $('#edit_storage_location').val(part.storage_location || '');
+                    $('#edit_purchase_date').val(part.purchase_date || '');
+                    $('#edit_last_inspection_date').val(part.last_inspection_date || '');
+                    $('#edit_next_inspection_date').val(part.next_inspection_date || '');
+                    $('#edit_warranty_period').val(part.warranty_period || '');
+                    $('#edit_unit_price').val(part.unit_price || '');
+                    $('#edit_remarks').val(part.remarks || '');
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('editModal'));
+                    modal.show();
+                }
+            },
+            error: function() {
+                showAlert('获取备件信息失败', 'danger');
+            }
+        });
+    }
+
+    // 提交编辑
+    function submitEdit() {
+        const partId = $('#edit_part_id').val();
+        const data = {
+            name: $('#edit_name').val(),
+            ownership: $('#edit_ownership').val() || null,
+            product_number: $('#edit_product_number').val() || null,
+            specifications: $('#edit_specifications').val() || null,
+            manufacturer: $('#edit_manufacturer').val() || null,
+            usage_status: $('#edit_usage_status').val(),
+            storage_location: $('#edit_storage_location').val() || null,
+            purchase_date: $('#edit_purchase_date').val() || null,
+            last_inspection_date: $('#edit_last_inspection_date').val() || null,
+            next_inspection_date: $('#edit_next_inspection_date').val() || null,
+            warranty_period: $('#edit_warranty_period').val() ? parseInt($('#edit_warranty_period').val()) : null,
+            unit_price: $('#edit_unit_price').val() ? parseFloat($('#edit_unit_price').val()) : null,
+            remarks: $('#edit_remarks').val() || null
+        };
+
+        // 验证必填项
+        if (!data.name) {
+            showAlert('请填写备件名称', 'warning');
+            return;
+        }
+
+        $.ajax({
+            url: `/api/spare-parts/${partId}`,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    showAlert('更新成功', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                    loadSpareParts();
+                } else {
+                    showAlert('更新失败：' + response.message, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('网络错误，请稍后重试', 'danger');
+            }
+        });
+    }
+
+    // 显示待检定备件
+    function showPendingInspection() {
+        $.ajax({
+            url: '/api/spare-parts/pending-inspection',
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    displayPendingInspection(response.data);
+                    const modal = new bootstrap.Modal(document.getElementById('pendingInspectionModal'));
+                    modal.show();
+                } else {
+                    showAlert('加载失败：' + response.message, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('网络错误，请稍后重试', 'danger');
+            }
+        });
+    }
+
+    // 显示待检定列表
+    function displayPendingInspection(parts) {
+        const tbody = $('#pendingInspectionTableBody');
+        tbody.empty();
+
+        if (parts.length === 0) {
+            tbody.append('<tr><td colspan="9" class="text-center" style="color: #94a3b8;">暂无待检定备件</td></tr>');
+            return;
+        }
+
+        parts.forEach(function(part) {
+            let inspectionText = '';
+            let inspectionClass = '';
+            if (part.days_to_inspection !== null) {
+                if (part.days_to_inspection < 0) {
+                    inspectionText = `已过期 ${Math.abs(part.days_to_inspection)} 天`;
+                    inspectionClass = 'fw-bold';
+                    inspectionClass += ' text-danger';
+                } else if (part.days_to_inspection <= 30) {
+                    inspectionText = `${part.days_to_inspection} 天`;
+                    inspectionClass = 'fw-bold';
+                    inspectionClass += ' text-warning';
+                } else {
+                    inspectionText = `${part.days_to_inspection} 天`;
+                    inspectionClass = 'text-success';
+                }
+            }
+
+            const row = `
+                <tr>
+                    <td>${part.id}</td>
+                    <td>${part.name}</td>
+                    <td>${part.ownership || '-'}</td>
+                    <td>${part.product_number || '-'}</td>
+                    <td>${part.next_inspection_date}</td>
+                    <td class="${inspectionClass}">${inspectionText}</td>
+                    <td><span class="badge badge-status status-${part.usage_status}">${part.usage_status}</span></td>
+                    <td>${part.storage_location || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="viewDetail(${part.id})" title="查看详情">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    }
+
+    // 查看详情
+    function viewDetail(partId) {
+        window.location.href = `/detail/${partId}`;
+    }
+
+    // 删除备件
+    function deletePart(partId) {
+        deletePartId = partId;
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    }
+
+    // 确认删除
+    function confirmDelete() {
+        if (deletePartId === null) return;
+
+        $.ajax({
+            url: `/api/spare-parts/${deletePartId}`,
+            method: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    showAlert('删除成功', 'success');
+                    loadSpareParts();
+                    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+                } else {
+                    showAlert('删除失败：' + response.message, 'danger');
+                }
+            },
+            error: function(xhr) {
+                showAlert('网络错误，请稍后重试', 'danger');
+            }
+        });
+    }
+
+    // 导出Excel
+    function exportSpareParts() {
+        const filters = {
+            keyword: $('#keyword').val(),
+            usage_status: $('#usageStatus').val(),
+            storage_location: $('#storageLocation').val()
+        };
+
+        const queryString = $.param(filters);
+        window.location.href = `/api/export/spare-parts?${queryString}`;
+    }
+
+    // 显示提示消息
+    function showAlert(message, type) {
+        const alert = $(`
+            <div class="alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" role="alert" style="z-index: 9999; min-width: 300px;">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `);
+        $('body').append(alert);
+        setTimeout(function() {
+            alert.alert('close');
+        }, 3000);
+    }
+
+    // 回车键搜索
+    $('#keyword, #storageLocation').keypress(function(e) {
+        if (e.which === 13) {
+            searchSpareParts();
+        }
+    });
+</script>
+{% endblock %}
