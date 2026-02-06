@@ -20,10 +20,11 @@ import signal
 import atexit
 import logging
 from logging.handlers import RotatingFileHandler
-from werkzeug.utils import secure_filename
 import shutil
 import json
 import configparser
+import subprocess
+import re
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 try:
@@ -112,8 +113,7 @@ def load_config():
 CONFIG = load_config()
 
 # 文件上传配置
-ALLOWED_EXTENSIONS = CONFIG['allowed_extensions']
-MAX_UPLOAD_SIZE = CONFIG['max_upload_size_mb'] * 1024 * 1024
+MAX_UPLOAD_SIZE = CONFIG['max_upload_size_mb'] * 1024 * 1024  # 备份文件上传大小限制
 
 # 日志配置
 LOG_MAX_SIZE = CONFIG['max_log_size_mb'] * 1024 * 1024
@@ -129,28 +129,26 @@ DEFAULT_PASSWORD = CONFIG['default_password']
 
 # ==================== 其他工具函数 ====================
 
-def get_upload_path():
-    """获取文件上传目录"""
-    upload_dir = os.path.join(get_app_dir(), 'uploads')
-    if not os.path.exists(upload_dir):
-        os.makedirs(upload_dir)
-    return upload_dir
-
-
-def allowed_file(filename):
-    """检查文件类型是否允许"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
 def get_resource_path(relative_path):
     """获取资源文件的绝对路径，支持PyInstaller打包"""
     try:
         # PyInstaller创建的临时文件夹
-        base_path = sys._MEIPASS
+        if getattr(sys, 'frozen', False):
+            base_path = sys._MEIPASS
+            # 优先检查根目录
+            path = os.path.join(base_path, relative_path)
+            if os.path.exists(path):
+                return path
+            # 兼容 PyInstaller 6+ 默认的 _internal 目录
+            internal_path = os.path.join(base_path, '_internal', relative_path)
+            if os.path.exists(internal_path):
+                return internal_path
+            return path
+        else:
+            # 开发环境
+            return os.path.abspath(os.path.join(".", relative_path))
     except Exception:
-        # 开发环境
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
+        return os.path.abspath(os.path.join(".", relative_path))
 
 
 def get_database_path():
@@ -180,6 +178,127 @@ def get_backup_path():
 def get_backup_config_path():
     """获取备份配置文件路径"""
     return os.path.join(get_app_dir(), 'backup_config.json')
+
+
+# ==================== 文件夹管理函数 ====================
+
+def get_files_root_path():
+    """获取文件管理根目录"""
+    files_dir = os.path.join(get_app_dir(), 'files')
+    if not os.path.exists(files_dir):
+        os.makedirs(files_dir)
+    return files_dir
+
+
+def get_spare_parts_files_path():
+    """获取备件文件夹根目录"""
+    spare_parts_dir = os.path.join(get_files_root_path(), 'spare_parts')
+    if not os.path.exists(spare_parts_dir):
+        os.makedirs(spare_parts_dir)
+    return spare_parts_dir
+
+
+def get_historical_documents_path():
+    """获取历史文件夹目录"""
+    historical_dir = os.path.join(get_files_root_path(), 'historical_documents')
+    if not os.path.exists(historical_dir):
+        os.makedirs(historical_dir)
+    return historical_dir
+
+
+def sanitize_folder_name(name):
+    """清理文件夹名称，移除或替换不允许的字符"""
+    # Windows不允许的字符: \ / : * ? " < > |
+    invalid_chars = r'[\\/:*?"<>|]'
+    # 替换为下划线
+    sanitized = re.sub(invalid_chars, '_', name)
+    # 移除首尾空格和点
+    sanitized = sanitized.strip(' .')
+    # 如果结果为空，返回默认名称
+    return sanitized if sanitized else 'unnamed'
+
+
+def get_spare_part_folder_name(asset_number, name):
+    """生成备件文件夹名称"""
+    safe_asset = sanitize_folder_name(asset_number)
+    safe_name = sanitize_folder_name(name)
+    return f"{safe_asset}_{safe_name}"
+
+
+def get_spare_part_folder_path(asset_number, name):
+    """获取指定备件的文件夹路径"""
+    folder_name = get_spare_part_folder_name(asset_number, name)
+    folder_path = os.path.join(get_spare_parts_files_path(), folder_name)
+    return folder_path
+
+
+def create_spare_part_folder(asset_number, name):
+    """创建备件对应的文件夹"""
+    folder_path = get_spare_part_folder_path(asset_number, name)
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+        logging.info(f'创建备件文件夹: {folder_path}')
+    return folder_path
+
+
+def delete_spare_part_folder(asset_number, name):
+    """删除备件对应的文件夹"""
+    folder_path = get_spare_part_folder_path(asset_number, name)
+    if os.path.exists(folder_path):
+        shutil.rmtree(folder_path)
+        logging.info(f'删除备件文件夹: {folder_path}')
+        return True
+    return False
+
+
+def rename_spare_part_folder(old_asset_number, old_name, new_asset_number, new_name):
+    """重命名备件文件夹（当资产编号或名称变更时）"""
+    old_folder_path = get_spare_part_folder_path(old_asset_number, old_name)
+    new_folder_path = get_spare_part_folder_path(new_asset_number, new_name)
+    
+    if old_folder_path == new_folder_path:
+        return True  # 无需重命名
+    
+    if os.path.exists(old_folder_path):
+        if os.path.exists(new_folder_path):
+            # 如果新路径已存在，合并文件
+            for item in os.listdir(old_folder_path):
+                src = os.path.join(old_folder_path, item)
+                dst = os.path.join(new_folder_path, item)
+                if os.path.exists(dst):
+                    # 如果目标已存在，添加后缀
+                    base, ext = os.path.splitext(item)
+                    counter = 1
+                    while os.path.exists(dst):
+                        dst = os.path.join(new_folder_path, f"{base}_{counter}{ext}")
+                        counter += 1
+                shutil.move(src, dst)
+            shutil.rmtree(old_folder_path)
+        else:
+            os.rename(old_folder_path, new_folder_path)
+        logging.info(f'重命名备件文件夹: {old_folder_path} -> {new_folder_path}')
+        return True
+    else:
+        # 旧文件夹不存在，创建新的
+        create_spare_part_folder(new_asset_number, new_name)
+        return True
+
+
+def open_folder_in_explorer(folder_path):
+    """在Windows资源管理器中打开指定文件夹（窗口弹到前台）"""
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+    
+    # Windows下使用os.startfile，会自动将窗口带到前台
+    if sys.platform == 'win32':
+        os.startfile(folder_path)
+        return True
+    elif sys.platform == 'darwin':  # macOS
+        subprocess.Popen(['open', folder_path])
+        return True
+    else:  # Linux
+        subprocess.Popen(['xdg-open', folder_path])
+        return True
 
 
 # ==================== 日志配置 ====================
@@ -221,6 +340,11 @@ def setup_logging():
     
     logging.info('='*60)
     logging.info('备品备件管理系统启动')
+    logging.info(f'程序目录: {get_app_dir()}')
+    logging.info(f'资源目录: {getattr(sys, "_MEIPASS", "开发环境")}')
+    logging.info(f'模板目录: {app.template_folder}')
+    logging.info(f'静态目录: {app.static_folder}')
+    logging.info(f'数据库文件: {get_database_path()}')
     logging.info(f'日志文件: {log_file}')
     logging.info('='*60)
 
@@ -235,7 +359,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{get_database_path()}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', CONFIG['secret_key'])
 app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_SIZE
-app.config['UPLOAD_FOLDER'] = get_upload_path()
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=SESSION_LIFETIME_HOURS)
 
 db = SQLAlchemy(app)
@@ -666,7 +789,6 @@ class SparePart(db.Model):
     inbound_records = db.relationship('InboundRecord', backref='spare_part', lazy=True, cascade='all, delete-orphan')
     outbound_records = db.relationship('OutboundRecord', backref='spare_part', lazy=True, cascade='all, delete-orphan')
     fault_records = db.relationship('FaultRecord', backref='spare_part', lazy=True, cascade='all, delete-orphan')
-    attachments = db.relationship('Attachment', backref='spare_part', lazy=True, cascade='all, delete-orphan')
     maintenance_records = db.relationship('MaintenanceRecord', backref='spare_part', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
@@ -808,58 +930,6 @@ class FaultRecord(db.Model):
         }
 
 
-class Attachment(db.Model):
-    """附件表（图片、说明书、校准记录等）"""
-    __tablename__ = 'attachments'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    spare_part_id = db.Column(db.Integer, db.ForeignKey('spare_parts.id'), nullable=False)
-    filename = db.Column(db.String(255), nullable=False)  # 原始文件名
-    stored_filename = db.Column(db.String(255), nullable=False)  # 存储文件名
-    file_type = db.Column(db.String(50))  # 文件类型（图片/说明书/校准记录/其他）
-    file_size = db.Column(db.Integer)  # 文件大小（字节）
-    upload_date = db.Column(db.DateTime, default=datetime.utcnow)  # 上传时间
-    remarks = db.Column(db.Text)  # 备注
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'spare_part_id': self.spare_part_id,
-            'filename': self.filename,
-            'stored_filename': self.stored_filename,
-            'file_type': self.file_type,
-            'file_size': self.file_size,
-            'upload_date': self.upload_date.strftime('%Y-%m-%d %H:%M:%S'),
-            'remarks': self.remarks
-        }
-
-
-class HistoricalDocument(db.Model):
-    """历史文件表（不与设备绑定的文档）"""
-    __tablename__ = 'historical_documents'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    filename = db.Column(db.String(255), nullable=False)  # 原始文件名
-    stored_filename = db.Column(db.String(255), nullable=False)  # 存储文件名
-    file_type = db.Column(db.String(50))  # 文件类型
-    file_size = db.Column(db.Integer)  # 文件大小（字节）
-    upload_date = db.Column(db.DateTime, default=datetime.utcnow)  # 上传时间
-    category = db.Column(db.String(50))  # 分类（可选）
-    remarks = db.Column(db.Text)  # 备注
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'filename': self.filename,
-            'stored_filename': self.stored_filename,
-            'file_type': self.file_type,
-            'file_size': self.file_size,
-            'upload_date': self.upload_date.strftime('%Y-%m-%d %H:%M:%S'),
-            'category': self.category,
-            'remarks': self.remarks
-        }
-
-
 class MaintenanceRecord(db.Model):
     """维护记录表"""
     __tablename__ = 'maintenance_records'
@@ -943,6 +1013,12 @@ def logout():
     session.clear()
     logging.info(f'用户登出 - 用户: {username}')
     return jsonify({'success': True, 'message': '登出成功'})
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 
 # 页面路由
@@ -1077,6 +1153,44 @@ def get_spare_part(part_id):
         return jsonify({'success': False, 'message': str(e)}), 404
 
 
+@app.route('/api/spare-parts/options', methods=['GET'])
+def get_spare_parts_options():
+    """获取备件字段的已有选项（用于下拉选择）"""
+    try:
+        # 获取所有不重复的系统（ownership）
+        ownerships = db.session.query(SparePart.ownership).filter(
+            SparePart.ownership.isnot(None),
+            SparePart.ownership != ''
+        ).distinct().all()
+        ownership_list = sorted([o[0] for o in ownerships if o[0]])
+        
+        # 获取所有不重复的存放地点
+        locations = db.session.query(SparePart.storage_location).filter(
+            SparePart.storage_location.isnot(None),
+            SparePart.storage_location != ''
+        ).distinct().all()
+        location_list = sorted([l[0] for l in locations if l[0]])
+        
+        # 获取所有不重复的生产厂家
+        manufacturers = db.session.query(SparePart.manufacturer).filter(
+            SparePart.manufacturer.isnot(None),
+            SparePart.manufacturer != ''
+        ).distinct().all()
+        manufacturer_list = sorted([m[0] for m in manufacturers if m[0]])
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'ownerships': ownership_list,
+                'storage_locations': location_list,
+                'manufacturers': manufacturer_list
+            }
+        })
+    except Exception as e:
+        logging.error(f'获取选项列表失败: {str(e)}', exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/spare-parts', methods=['POST'])
 def create_spare_part():
     """创建新备件"""
@@ -1117,6 +1231,9 @@ def create_spare_part():
         db.session.add(spare_part)
         db.session.commit()
         
+        # 创建备件对应的文件夹
+        create_spare_part_folder(spare_part.asset_number, spare_part.name)
+        
         logging.info(f'备件创建成功 - ID: {spare_part.id}, 名称: {spare_part.name}')
         
         return jsonify({
@@ -1138,6 +1255,10 @@ def update_spare_part(part_id):
         data = request.get_json()
         
         logging.info(f'更新备件 - ID: {part_id}, 名称: {part.name}')
+        
+        # 保存旧的资产编号和名称，用于文件夹重命名
+        old_asset_number = part.asset_number
+        old_name = part.name
         
         # 更新字段
         if 'name' in data:
@@ -1177,6 +1298,10 @@ def update_spare_part(part_id):
         
         db.session.commit()
         
+        # 如果名称或资产编号有变化，重命名文件夹
+        if old_asset_number != part.asset_number or old_name != part.name:
+            rename_spare_part_folder(old_asset_number, old_name, part.asset_number, part.name)
+        
         logging.info(f'备件更新成功 - ID: {part_id}')
         
         return jsonify({
@@ -1194,16 +1319,27 @@ def update_spare_part(part_id):
 def delete_spare_part(part_id):
     """删除备件"""
     try:
+        # 获取是否删除文件夹的参数
+        delete_folder = request.args.get('delete_folder', 'false').lower() == 'true'
+        
         part = SparePart.query.get_or_404(part_id)
         part_name = part.name
+        part_asset_number = part.asset_number
+        
         db.session.delete(part)
         db.session.commit()
         
-        logging.info(f'备件删除成功 - ID: {part_id}, 名称: {part_name}')
+        # 如果指定了删除文件夹，则删除对应的文件夹
+        folder_deleted = False
+        if delete_folder:
+            folder_deleted = delete_spare_part_folder(part_asset_number, part_name)
+        
+        logging.info(f'备件删除成功 - ID: {part_id}, 名称: {part_name}, 文件夹删除: {folder_deleted}')
         
         return jsonify({
             'success': True,
-            'message': '备件删除成功'
+            'message': '备件删除成功',
+            'data': {'folder_deleted': folder_deleted}
         })
     except Exception as e:
         db.session.rollback()
@@ -2031,324 +2167,216 @@ def export_instrument_details():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-# API路由 - 文件管理
-@app.route('/api/attachments/<int:part_id>', methods=['GET'])
-def get_attachments(part_id):
-    """获取某个备件的所有附件"""
+# ==================== API路由 - 文件夹管理 ====================
+
+@app.route('/api/folder/spare-part/<int:part_id>/open', methods=['POST'])
+@login_required
+def open_spare_part_folder(part_id):
+    """打开备件对应的文件夹"""
     try:
-        attachments = Attachment.query.filter_by(spare_part_id=part_id).order_by(Attachment.upload_date.desc()).all()
+        part = SparePart.query.get_or_404(part_id)
+        folder_path = get_spare_part_folder_path(part.asset_number, part.name)
+        
+        # 确保文件夹存在
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        
+        open_folder_in_explorer(folder_path)
+        logging.info(f'打开备件文件夹 - ID: {part_id}, 路径: {folder_path}')
+        
         return jsonify({
             'success': True,
-            'data': [att.to_dict() for att in attachments]
+            'message': '已打开文件夹',
+            'data': {'folder_path': folder_path}
         })
     except Exception as e:
-        logging.error(f'获取附件列表失败: {str(e)}', exc_info=True)
+        logging.error(f'打开备件文件夹失败 - ID: {part_id}, 错误: {str(e)}', exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/attachments/upload', methods=['POST'])
-def upload_attachment():
-    """上传附件"""
+@app.route('/api/folder/spare-part/<int:part_id>/info', methods=['GET'])
+@login_required
+def get_spare_part_folder_info(part_id):
+    """获取备件文件夹信息"""
     try:
-        logging.info(f'收到文件上传请求 - files: {list(request.files.keys())}, form: {list(request.form.keys())}')
+        part = SparePart.query.get_or_404(part_id)
+        folder_path = get_spare_part_folder_path(part.asset_number, part.name)
         
-        if 'file' not in request.files:
-            logging.warning('上传请求中没有file字段')
-            return jsonify({'success': False, 'message': '没有文件'}), 400
+        folder_exists = os.path.exists(folder_path)
+        file_count = 0
+        total_size = 0
+        files = []
         
-        file = request.files['file']
-        part_id = request.form.get('spare_part_id')
-        remarks = request.form.get('remarks', '')
-        
-        logging.info(f'文件信息 - 备件ID: {part_id}, 文件名: {file.filename}')
-        
-        if not part_id:
-            logging.warning('缺少备件ID')
-            return jsonify({'success': False, 'message': '缺少备件ID'}), 400
-        
-        if file.filename == '':
-            logging.warning('文件名为空')
-            return jsonify({'success': False, 'message': '没有选择文件'}), 400
-        
-        if not allowed_file(file.filename):
-            logging.warning(f'不允许的文件类型: {file.filename}')
-            return jsonify({'success': False, 'message': f'不允许的文件类型，支持的类型: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
-        
-        # 保存完整的原始文件名（包括中文）
-        original_filename = file.filename
-        # 生成安全的存储文件名（用于物理存储）
-        safe_filename = secure_filename(file.filename)
-        # 如果secure_filename处理后为空，使用时间戳 + 扩展名
-        if not safe_filename or safe_filename == '':
-            ext = original_filename.rsplit('.', 1)[1] if '.' in original_filename else 'file'
-            safe_filename = f'file.{ext}'
-        
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        stored_filename = f"{part_id}_{timestamp}_{safe_filename}"
-        
-        # 根据文件扩展名自动判断文件类型
-        ext = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else ''
-        if ext in ['png', 'jpg', 'jpeg', 'gif', 'bmp']:
-            file_type = '图片'
-        elif ext == 'pdf':
-            file_type = 'PDF文档'
-        elif ext in ['doc', 'docx']:
-            file_type = 'Word文档'
-        elif ext in ['xls', 'xlsx']:
-            file_type = 'Excel表格'
-        elif ext in ['zip', 'rar']:
-            file_type = '压缩包'
-        elif ext == 'txt':
-            file_type = '文本文件'
-        else:
-            file_type = '其他'
-        
-        # 保存文件
-        upload_dir = get_upload_path()
-        file_path = os.path.join(upload_dir, stored_filename)
-        
-        logging.info(f'开始保存文件到: {file_path}')
-        file.save(file_path)
-        
-        # 获取文件大小
-        file_size = os.path.getsize(file_path)
-        logging.info(f'文件保存成功，大小: {file_size} bytes, 类型: {file_type}')
-        
-        # 创建数据库记录
-        attachment = Attachment(
-            spare_part_id=int(part_id),
-            filename=original_filename,  # 保存完整的原始文件名
-            stored_filename=stored_filename,
-            file_type=file_type,
-            file_size=file_size,
-            remarks=remarks
-        )
-        
-        db.session.add(attachment)
-        db.session.commit()
-        
-        logging.info(f'文件上传成功 - 备件ID: {part_id}, 文件: {original_filename}, 附件ID: {attachment.id}')
+        if folder_exists:
+            for item in os.listdir(folder_path):
+                item_path = os.path.join(folder_path, item)
+                if os.path.isfile(item_path):
+                    file_size = os.path.getsize(item_path)
+                    file_count += 1
+                    total_size += file_size
+                    files.append({
+                        'name': item,
+                        'size': file_size,
+                        'modified': datetime.fromtimestamp(os.path.getmtime(item_path)).strftime('%Y-%m-%d %H:%M:%S')
+                    })
         
         return jsonify({
             'success': True,
-            'message': '文件上传成功',
-            'data': attachment.to_dict()
-        }), 201
-    except Exception as e:
-        db.session.rollback()
-        logging.error(f'上传文件失败: {str(e)}', exc_info=True)
-        return jsonify({'success': False, 'message': f'上传失败: {str(e)}'}), 500
-
-
-@app.route('/api/attachments/<int:attachment_id>', methods=['DELETE'])
-def delete_attachment(attachment_id):
-    """删除附件"""
-    try:
-        attachment = Attachment.query.get_or_404(attachment_id)
-        
-        # 删除物理文件
-        upload_dir = get_upload_path()
-        file_path = os.path.join(upload_dir, attachment.stored_filename)
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        
-        # 删除数据库记录
-        db.session.delete(attachment)
-        db.session.commit()
-        
-        logging.info(f'附件删除成功 - ID: {attachment_id}, 文件: {attachment.filename}')
-        
-        return jsonify({
-            'success': True,
-            'message': '附件删除成功'
+            'data': {
+                'folder_path': folder_path,
+                'folder_exists': folder_exists,
+                'file_count': file_count,
+                'total_size': total_size,
+                'files': files
+            }
         })
     except Exception as e:
-        db.session.rollback()
-        logging.error(f'删除附件失败: {str(e)}', exc_info=True)
+        logging.error(f'获取备件文件夹信息失败 - ID: {part_id}, 错误: {str(e)}', exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/attachments/download/<int:attachment_id>', methods=['GET'])
-def download_attachment(attachment_id):
-    """下载附件"""
+@app.route('/api/folder/historical-documents/open', methods=['POST'])
+@login_required
+def open_historical_documents_folder():
+    """打开历史文件夹"""
     try:
-        attachment = Attachment.query.get_or_404(attachment_id)
-        upload_dir = get_upload_path()
-        
-        logging.info(f'下载附件 - ID: {attachment_id}, 文件: {attachment.filename}')
-        
-        return send_from_directory(
-            upload_dir,
-            attachment.stored_filename,
-            as_attachment=True,
-            download_name=attachment.filename
-        )
-    except Exception as e:
-        logging.error(f'下载附件失败: {str(e)}', exc_info=True)
-        return jsonify({'success': False, 'message': str(e)}), 404
-
-
-# ==================== 历史文件管理 API ====================
-
-@app.route('/api/historical-documents', methods=['GET'])
-def get_historical_documents():
-    """获取历史文件列表"""
-    try:
-        category = request.args.get('category', '')
-        
-        query = HistoricalDocument.query
-        if category:
-            query = query.filter(HistoricalDocument.category == category)
-        
-        documents = query.order_by(HistoricalDocument.upload_date.desc()).all()
-        
-        logging.info(f'查询历史文件列表成功 - 数量: {len(documents)}')
+        folder_path = get_historical_documents_path()
+        open_folder_in_explorer(folder_path)
+        logging.info(f'打开历史文件夹 - 路径: {folder_path}')
         
         return jsonify({
             'success': True,
-            'data': [doc.to_dict() for doc in documents]
+            'message': '已打开文件夹',
+            'data': {'folder_path': folder_path}
         })
     except Exception as e:
-        logging.error(f'获取历史文件列表失败: {str(e)}', exc_info=True)
+        logging.error(f'打开历史文件夹失败: {str(e)}', exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/historical-documents/upload', methods=['POST'])
-def upload_historical_document():
-    """上传历史文件"""
+@app.route('/api/folder/historical-documents/info', methods=['GET'])
+@login_required
+def get_historical_documents_folder_info():
+    """获取历史文件夹信息"""
     try:
-        logging.info(f'收到历史文件上传请求 - files: {list(request.files.keys())}, form: {list(request.form.keys())}')
+        folder_path = get_historical_documents_path()
         
-        if 'file' not in request.files:
-            logging.warning('上传请求中没有file字段')
-            return jsonify({'success': False, 'message': '没有文件'}), 400
+        file_count = 0
+        total_size = 0
+        files = []
         
-        file = request.files['file']
-        category = request.form.get('category', '')
-        remarks = request.form.get('remarks', '')
-        
-        logging.info(f'文件信息 - 分类: {category}, 文件名: {file.filename}')
-        
-        if file.filename == '':
-            logging.warning('文件名为空')
-            return jsonify({'success': False, 'message': '没有选择文件'}), 400
-        
-        if not allowed_file(file.filename):
-            logging.warning(f'不允许的文件类型: {file.filename}')
-            return jsonify({'success': False, 'message': f'不允许的文件类型，支持的类型: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
-        
-        # 保存完整的原始文件名（包括中文）
-        original_filename = file.filename
-        # 生成安全的存储文件名（用于物理存储）
-        safe_filename = secure_filename(file.filename)
-        # 如果secure_filename处理后为空，使用时间戳 + 扩展名
-        if not safe_filename or safe_filename == '':
-            ext = original_filename.rsplit('.', 1)[1] if '.' in original_filename else 'file'
-            safe_filename = f'file.{ext}'
-        
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        stored_filename = f"historical_{timestamp}_{safe_filename}"
-        
-        # 根据文件扩展名自动判断文件类型
-        ext = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else ''
-        if ext in ['png', 'jpg', 'jpeg', 'gif', 'bmp']:
-            file_type = '图片'
-        elif ext == 'pdf':
-            file_type = 'PDF文档'
-        elif ext in ['doc', 'docx']:
-            file_type = 'Word文档'
-        elif ext in ['xls', 'xlsx']:
-            file_type = 'Excel表格'
-        elif ext in ['zip', 'rar']:
-            file_type = '压缩包'
-        elif ext == 'txt':
-            file_type = '文本文件'
-        else:
-            file_type = '其他'
-        
-        # 保存文件
-        upload_dir = get_upload_path()
-        file_path = os.path.join(upload_dir, stored_filename)
-        
-        logging.info(f'开始保存文件到: {file_path}')
-        file.save(file_path)
-        
-        # 获取文件大小
-        file_size = os.path.getsize(file_path)
-        logging.info(f'文件保存成功，大小: {file_size} bytes, 类型: {file_type}')
-        
-        # 创建数据库记录
-        document = HistoricalDocument(
-            filename=original_filename,
-            stored_filename=stored_filename,
-            file_type=file_type,
-            file_size=file_size,
-            category=category,
-            remarks=remarks
-        )
-        
-        db.session.add(document)
-        db.session.commit()
-        
-        logging.info(f'历史文件上传成功 - 文件: {original_filename}, ID: {document.id}')
+        for item in os.listdir(folder_path):
+            item_path = os.path.join(folder_path, item)
+            if os.path.isfile(item_path):
+                file_size = os.path.getsize(item_path)
+                file_count += 1
+                total_size += file_size
+                files.append({
+                    'name': item,
+                    'size': file_size,
+                    'modified': datetime.fromtimestamp(os.path.getmtime(item_path)).strftime('%Y-%m-%d %H:%M:%S')
+                })
         
         return jsonify({
             'success': True,
-            'message': '文件上传成功',
-            'data': document.to_dict()
-        }), 201
-    except Exception as e:
-        db.session.rollback()
-        logging.error(f'上传历史文件失败: {str(e)}', exc_info=True)
-        return jsonify({'success': False, 'message': f'上传失败: {str(e)}'}), 500
-
-
-@app.route('/api/historical-documents/<int:doc_id>', methods=['DELETE'])
-def delete_historical_document(doc_id):
-    """删除历史文件"""
-    try:
-        document = HistoricalDocument.query.get_or_404(doc_id)
-        
-        # 删除物理文件
-        upload_dir = get_upload_path()
-        file_path = os.path.join(upload_dir, document.stored_filename)
-        if os.path.exists(file_path):
-            os.remove(file_path)
-        
-        # 删除数据库记录
-        db.session.delete(document)
-        db.session.commit()
-        
-        logging.info(f'历史文件删除成功 - ID: {doc_id}, 文件: {document.filename}')
-        
-        return jsonify({
-            'success': True,
-            'message': '文件删除成功'
+            'data': {
+                'folder_path': folder_path,
+                'file_count': file_count,
+                'total_size': total_size,
+                'files': files
+            }
         })
     except Exception as e:
-        db.session.rollback()
-        logging.error(f'删除历史文件失败: {str(e)}', exc_info=True)
+        logging.error(f'获取历史文件夹信息失败: {str(e)}', exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/historical-documents/download/<int:doc_id>', methods=['GET'])
-def download_historical_document(doc_id):
-    """下载历史文件"""
+@app.route('/api/folder/root/open', methods=['POST'])
+@login_required
+def open_files_root_folder():
+    """打开文件管理根目录"""
     try:
-        document = HistoricalDocument.query.get_or_404(doc_id)
-        upload_dir = get_upload_path()
+        folder_path = get_files_root_path()
+        open_folder_in_explorer(folder_path)
+        logging.info(f'打开文件根目录 - 路径: {folder_path}')
         
-        logging.info(f'下载历史文件 - ID: {doc_id}, 文件: {document.filename}')
-        
-        return send_from_directory(
-            upload_dir,
-            document.stored_filename,
-            as_attachment=True,
-            download_name=document.filename
-        )
+        return jsonify({
+            'success': True,
+            'message': '已打开文件夹',
+            'data': {'folder_path': folder_path}
+        })
     except Exception as e:
-        logging.error(f'下载历史文件失败: {str(e)}', exc_info=True)
-        return jsonify({'success': False, 'message': str(e)}), 404
+        logging.error(f'打开文件根目录失败: {str(e)}', exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/folder/spare-parts/status', methods=['GET'])
+@login_required
+def get_all_spare_parts_folder_status():
+    """获取所有备件的文件夹状态（文件数量）"""
+    try:
+        parts = SparePart.query.all()
+        folder_status = {}
+        
+        for part in parts:
+            folder_path = get_spare_part_folder_path(part.asset_number, part.name)
+            file_count = 0
+            folder_modified = None
+            
+            if os.path.exists(folder_path):
+                for item in os.listdir(folder_path):
+                    item_path = os.path.join(folder_path, item)
+                    if os.path.isfile(item_path):
+                        file_count += 1
+                # 获取文件夹最后修改时间
+                folder_modified = datetime.fromtimestamp(os.path.getmtime(folder_path)).strftime('%Y-%m-%d %H:%M')
+            
+            folder_status[part.id] = {
+                'file_count': file_count,
+                'folder_exists': os.path.exists(folder_path),
+                'last_modified': folder_modified
+            }
+        
+        return jsonify({
+            'success': True,
+            'data': folder_status
+        })
+    except Exception as e:
+        logging.error(f'获取备件文件夹状态失败: {str(e)}', exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/folder/spare-parts/batch-init', methods=['POST'])
+@login_required
+def batch_init_spare_part_folders():
+    """批量为所有备件创建文件夹"""
+    try:
+        parts = SparePart.query.all()
+        created_count = 0
+        existed_count = 0
+        
+        for part in parts:
+            folder_path = get_spare_part_folder_path(part.asset_number, part.name)
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+                created_count += 1
+            else:
+                existed_count += 1
+        
+        logging.info(f'批量初始化备件文件夹 - 新建: {created_count}, 已存在: {existed_count}')
+        
+        return jsonify({
+            'success': True,
+            'message': f'文件夹初始化完成！新建 {created_count} 个，已存在 {existed_count} 个',
+            'data': {
+                'created_count': created_count,
+                'existed_count': existed_count,
+                'total': created_count + existed_count
+            }
+        })
+    except Exception as e:
+        logging.error(f'批量初始化文件夹失败: {str(e)}', exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 # API路由 - 备份管理
@@ -2584,7 +2612,37 @@ def open_browser():
     webbrowser.open('http://127.0.0.1:5000')
 
 
+def is_port_in_use(port):
+    """检查端口是否被占用"""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('127.0.0.1', port))
+            return False
+        except OSError:
+            return True
+
+
+def check_single_instance():
+    """检查是否已有实例在运行，如果有则激活浏览器并退出"""
+    port = CONFIG.get('port', 5000)
+    if is_port_in_use(port):
+        print("="*60)
+        print("备品备件管理系统")
+        print("="*60)
+        print(f"\n⚠ 程序已在运行中！")
+        print(f"正在打开浏览器访问已运行的实例...")
+        webbrowser.open(f'http://127.0.0.1:{port}')
+        time.sleep(2)
+        return False
+    return True
+
+
 if __name__ == '__main__':
+    # 单实例检测
+    if not check_single_instance():
+        sys.exit(0)
+    
     print("="*60)
     print("备品备件管理系统")
     print("Author: wyj | License: MIT")

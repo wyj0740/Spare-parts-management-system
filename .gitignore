@@ -58,6 +58,9 @@ logs/
 # Uploads
 uploads/
 
+# Files directory (user data)
+files/
+
 # Environment variables
 .env
 .env.local

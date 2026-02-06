@@ -8,7 +8,7 @@ import sqlite3
 from datetime import datetime
 
 # 数据库版本号
-CURRENT_DB_VERSION = 1
+CURRENT_DB_VERSION = 2
 
 
 def get_database_path():
@@ -18,8 +18,11 @@ def get_database_path():
     else:
         app_dir = os.path.abspath(".")
     
-    db_path = os.path.join(app_dir, 'spare_parts.db')
-    return db_path
+    # 与 app.py 保持一致，存放在 data 目录下
+    db_dir = os.path.join(app_dir, 'data')
+    if not os.path.exists(db_dir):
+        os.makedirs(db_dir)
+    return os.path.join(db_dir, 'spare_parts.db')
 
 
 def get_db_version(conn):
@@ -94,9 +97,10 @@ def check_and_migrate():
             if current_version < 1:
                 migrate_to_v1(conn)
             
+            if current_version < 2:
+                migrate_to_v2(conn)
+            
             # 未来的迁移可以在这里添加
-            # if current_version < 2:
-            #     migrate_to_v2(conn)
             
             print("✓ 数据库迁移完成")
         else:
@@ -162,8 +166,41 @@ def migrate_to_v1(conn):
         print(f"  ⚠ 迁移警告: {str(e)}")
     
     # 设置版本号
-    set_db_version(conn, 1, "初始版本，包含文件管理和历史文件功能")
+    set_db_version(conn, 1, "初始版本")
     print("  ✓ 迁移到版本 1 完成")
+
+
+def migrate_to_v2(conn):
+    """迁移到版本2 - 删除废弃的attachments和historical_documents表，改用Windows文件夹管理"""
+    print("执行迁移: 版本 1 -> 2")
+    cursor = conn.cursor()
+    
+    try:
+        # 删除 attachments 表（已改用文件夹管理）
+        cursor.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name='attachments'
+        """)
+        if cursor.fetchone():
+            print("  - 删除废弃的 attachments 表")
+            cursor.execute("DROP TABLE attachments")
+        
+        # 删除 historical_documents 表（已改用文件夹管理）
+        cursor.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name='historical_documents'
+        """)
+        if cursor.fetchone():
+            print("  - 删除废弃的 historical_documents 表")
+            cursor.execute("DROP TABLE historical_documents")
+        
+        conn.commit()
+    except Exception as e:
+        print(f"  ⚠ 迁移警告: {str(e)}")
+    
+    # 设置版本号
+    set_db_version(conn, 2, "v2.1 - 文件管理改用Windows文件夹，删除废弃表")
+    print("  ✓ 迁移到版本 2 完成")
 
 
 def backup_database():

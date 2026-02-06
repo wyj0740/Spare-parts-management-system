@@ -172,13 +172,21 @@
                 <!-- 文件管理 -->
                 <div class="tab-pane fade" id="files" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6><i class="bi bi-file-earmark-text"></i> 文件管理</h6>
-                        <button class="btn btn-sm btn-primary" onclick="showUploadModal()">
-                            <i class="bi bi-cloud-upload"></i> 上传文件
-                        </button>
+                        <h6><i class="bi bi-folder2-open"></i> 文件管理</h6>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" onclick="loadFolderInfo()" title="刷新">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                            <button class="btn btn-outline-info" onclick="copyFolderPath()" title="复制路径">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                            <button class="btn btn-primary" onclick="openSparePartFolder()">
+                                <i class="bi bi-folder2-open"></i> 打开文件夹
+                            </button>
+                        </div>
                     </div>
-                    <div class="row" id="filesContainer">
-                        <div class="col-12 text-center" style="color: #94a3b8;">加载中...</div>
+                    <div id="folderInfoContainer">
+                        <div class="text-center" style="color: #94a3b8;">加载中...</div>
                     </div>
                 </div>
             </div>
@@ -447,36 +455,6 @@
     </div>
 </div>
 
-<!-- 上传文件模态框 -->
-<div class="modal fade" id="uploadFileModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title"><i class="bi bi-cloud-upload"></i> 上传文件</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="uploadForm" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label class="form-label">选择文件 <span class="text-danger">*</span></label>
-                        <input type="file" class="form-control" id="file_input" required>
-                        <div class="form-text">支持的文件类型：图片(png/jpg/gif)、文档(pdf/doc/docx)、表格(xls/xlsx)、压缩包(zip/rar)等</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">备注</label>
-                        <textarea class="form-control" id="file_remarks" rows="2" placeholder="可选：说明文件用途或内容"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="submitUpload()">
-                    <i class="bi bi-upload"></i> 上传
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -489,7 +467,7 @@
         loadOutboundRecords();
         loadFaultRecords();
         loadMaintenanceRecords();
-        loadAttachments();
+        loadFolderInfo();
     });
 
     // 加载备件信息
@@ -976,71 +954,85 @@
         }, 3000);
     }
 
-    // 加载附件列表
-    function loadAttachments() {
+    // 加载文件夹信息
+    function loadFolderInfo() {
         $.ajax({
-            url: `/api/attachments/${partId}`,
+            url: `/api/folder/spare-part/${partId}/info`,
             method: 'GET',
             success: function(response) {
                 if (response.success) {
-                    displayAttachments(response.data);
+                    displayFolderInfo(response.data);
                 }
             },
             error: function() {
-                $('#filesContainer').html('<div class="col-12 text-center text-danger">加载失败</div>');
+                $('#folderInfoContainer').html('<div class="text-center text-danger">加载失败</div>');
             }
         });
     }
 
-    // 显示附件列表
-    function displayAttachments(attachments) {
-        const container = $('#filesContainer');
+    // 显示文件夹信息
+    function displayFolderInfo(data) {
+        const container = $('#folderInfoContainer');
         container.empty();
 
-        if (attachments.length === 0) {
-            container.append('<div class="col-12 text-center" style="color: #94a3b8;">还没有上传任何文件</div>');
-            return;
-        }
+        const totalSizeKB = (data.total_size / 1024).toFixed(2);
+        const totalSizeMB = (data.total_size / (1024 * 1024)).toFixed(2);
+        const displaySize = data.total_size > 1024 * 1024 ? totalSizeMB + ' MB' : totalSizeKB + ' KB';
 
-        // 使用列表形式显示
-        let listHtml = '<div class="col-12"><div class="list-group">';
-        
-        attachments.forEach(function(att) {
-            const fileSize = (att.file_size / 1024).toFixed(2); // KB
-            const fileSizeMB = (att.file_size / (1024 * 1024)).toFixed(2); // MB
-            const displaySize = att.file_size > 1024 * 1024 ? fileSizeMB + ' MB' : fileSize + ' KB';
-            const fileIcon = getFileIcon(att.filename);
-            const uploadDate = att.upload_date.split(' ')[0]; // 只显示日期部分
-            
-            listHtml += `
-                <div class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="flex-grow-1 me-3">
-                            <h6 class="mb-1">
-                                <i class="bi ${fileIcon}"></i> 
-                                <strong>${att.filename}</strong>
-                            </h6>
-                            <small class="text-muted">
-                                <i class="bi bi-calendar3"></i> ${uploadDate}
-                                <span class="ms-2"><i class="bi bi-hdd"></i> ${displaySize}</span>
-                                ${att.remarks ? '<span class="ms-2"><i class="bi bi-chat-left-text"></i> ' + att.remarks + '</span>' : ''}
-                            </small>
-                        </div>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <a href="/api/attachments/download/${att.id}" class="btn btn-outline-primary" title="下载">
-                                <i class="bi bi-download"></i> 下载
-                            </a>
-                            <button class="btn btn-outline-danger" onclick="deleteAttachment(${att.id})" title="删除">
-                                <i class="bi bi-trash"></i> 删除
-                            </button>
-                        </div>
+        let html = `
+            <div class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-folder2-open fs-3 me-3"></i>
+                    <div>
+                        <strong>文件夹路径：</strong>
+                        <code style="word-break: break-all;">${data.folder_path}</code>
+                        <br>
+                        <small class="text-muted">
+                            <i class="bi bi-files"></i> ${data.file_count} 个文件
+                            <span class="ms-2"><i class="bi bi-hdd"></i> ${displaySize}</span>
+                        </small>
                     </div>
                 </div>
-            `;
-        });
-        
-        listHtml += '</div></div>';
-        container.append(listHtml);
+            </div>
+            <div class="alert alert-light border">
+                <i class="bi bi-info-circle"></i> 
+                <strong>提示：</strong>点击"打开文件夹"按钮可直接在Windows资源管理器中管理此备件的相关文件。
+                您可以直接在文件夹中添加、删除、重命名文件。
+            </div>
+        `;
+
+        if (data.files && data.files.length > 0) {
+            html += '<h6 class="mt-3 mb-2"><i class="bi bi-list-ul"></i> 文件列表</h6>';
+            html += '<div class="list-group">';
+            
+            data.files.forEach(function(file) {
+                const fileSize = (file.size / 1024).toFixed(2);
+                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                const displayFileSize = file.size > 1024 * 1024 ? fileSizeMB + ' MB' : fileSize + ' KB';
+                const fileIcon = getFileIcon(file.name);
+                
+                html += `
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi ${fileIcon}"></i>
+                                <strong>${file.name}</strong>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-hdd"></i> ${displayFileSize}
+                                <span class="ms-2"><i class="bi bi-clock"></i> ${file.modified}</span>
+                            </small>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+        } else {
+            html += '<div class="text-center" style="color: #94a3b8; padding: 20px;">文件夹为空，点击"打开文件夹"添加文件</div>';
+        }
+
+        container.html(html);
     }
 
     // 根据文件名获取图标
@@ -1064,105 +1056,18 @@
         return iconMap[ext] || 'bi-file-earmark-fill';
     }
 
-    // 显示上传模态框
-    function showUploadModal() {
-        $('#uploadForm')[0].reset();
-        new bootstrap.Modal(document.getElementById('uploadFileModal')).show();
-    }
-
-    // 提交上传
-    function submitUpload() {
-        const fileInput = document.getElementById('file_input');
-        const remarks = $('#file_remarks').val();
-
-        if (!fileInput.files || fileInput.files.length === 0) {
-            showAlert('请选择文件', 'warning');
-            return;
-        }
-
-        const file = fileInput.files[0];
-        const maxSize = 100 * 1024 * 1024; // 100MB
-        
-        if (file.size > maxSize) {
-            showAlert('文件大小超过100MB限制', 'warning');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('spare_part_id', partId);
-        formData.append('remarks', remarks);
-
-        console.log('开始上传文件:', file.name, '大小:', (file.size / 1024).toFixed(2), 'KB');
-
-        // 显示上传进度
-        const uploadBtn = $('button[onclick="submitUpload()"]');
-        const originalText = uploadBtn.html();
-        uploadBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>上传中...');
-
+    // 打开备件文件夹
+    function openSparePartFolder() {
         $.ajax({
-            url: '/api/attachments/upload',
+            url: `/api/folder/spare-part/${partId}/open`,
             method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            timeout: 120000, // 120秒超时
-            success: function(response) {
-                console.log('上传响应:', response);
-                if (response.success) {
-                    showAlert('文件上传成功', 'success');
-                    bootstrap.Modal.getInstance(document.getElementById('uploadFileModal')).hide();
-                    $('#file_input').val('');
-                    $('#file_remarks').val('');
-                    loadAttachments();
-                } else {
-                    showAlert('上传失败：' + response.message, 'danger');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('上传失败:', status, error, xhr);
-                let errorMsg = '网络错误，请稍后重试';
-                
-                if (xhr.status === 413) {
-                    errorMsg = '文件大小超过限制';
-                } else if (xhr.status === 400 || xhr.status === 500) {
-                    try {
-                        const response = xhr.responseJSON;
-                        if (response && response.message) {
-                            errorMsg = response.message;
-                        }
-                    } catch (e) {
-                        errorMsg = '服务器错误: ' + xhr.statusText;
-                    }
-                } else if (status === 'timeout') {
-                    errorMsg = '上传超时，请检查网络连接或减小文件大小';
-                } else if (status === 'error') {
-                    errorMsg = '无法连接到服务器，请检查服务器是否运行';
-                }
-                
-                showAlert('上传失败：' + errorMsg, 'danger');
-            },
-            complete: function() {
-                uploadBtn.prop('disabled', false).html(originalText);
-            }
-        });
-    }
-
-    // 删除附件
-    function deleteAttachment(attachmentId) {
-        if (!confirm('确定要删除这个文件吗？')) {
-            return;
-        }
-
-        $.ajax({
-            url: `/api/attachments/${attachmentId}`,
-            method: 'DELETE',
             success: function(response) {
                 if (response.success) {
-                    showAlert('文件删除成功', 'success');
-                    loadAttachments();
+                    showAlert('已打开文件夹', 'success');
+                    // 延迟刷新文件夹信息
+                    setTimeout(loadFolderInfo, 1000);
                 } else {
-                    showAlert('删除失败：' + response.message, 'danger');
+                    showAlert('打开失败：' + response.message, 'danger');
                 }
             },
             error: function() {

@@ -30,12 +30,12 @@
                             
                             <div class="col-md-6 mb-3">
                                 <label for="ownership" class="form-label">系统</label>
-                                <select class="form-select" id="ownership" name="ownership">
-                                    <option value="">请选择</option>
-                                    <option value="自观系统">自观系统</option>
-                                    <option value="信息系统">信息系统</option>
-                                    <option value="观测场">观测场</option>
-                                </select>
+                                <input type="text" class="form-control" id="ownership" name="ownership" list="ownershipList" placeholder="选择或输入系统">
+                                <datalist id="ownershipList">
+                                    <option value="自观系统">
+                                    <option value="信息系统">
+                                    <option value="观测场">
+                                </datalist>
                             </div>
                             
                             <div class="col-md-6 mb-3">
@@ -65,7 +65,9 @@
                             
                             <div class="col-md-12 mb-3">
                                 <label for="storageLocation" class="form-label">存放地点</label>
-                                <input type="text" class="form-control" id="storageLocation" name="storage_location">
+                                <input type="text" class="form-control" id="storageLocation" name="storage_location" list="storageLocationList" placeholder="选择或输入存放地点">
+                                <datalist id="storageLocationList">
+                                </datalist>
                             </div>
                             
                             <!-- 日期和财务信息 -->
@@ -128,11 +130,42 @@
 {% block extra_js %}
 <script>
     $(document).ready(function() {
+        // 加载下拉选项
+        loadOptions();
+        
         $('#createSparePartForm').submit(function(e) {
             e.preventDefault();
             createSparePart();
         });
     });
+
+    function loadOptions() {
+        $.ajax({
+            url: '/api/spare-parts/options',
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    const data = response.data;
+                    
+                    // 填充系统选项（保留默认选项，追加数据库中的选项）
+                    const ownershipList = $('#ownershipList');
+                    const defaultOwnerships = ['自观系统', '信息系统', '观测场'];
+                    const allOwnerships = [...new Set([...defaultOwnerships, ...data.ownerships])];
+                    ownershipList.empty();
+                    allOwnerships.forEach(function(item) {
+                        ownershipList.append(`<option value="${item}">`);
+                    });
+                    
+                    // 填充存放地点选项
+                    const locationList = $('#storageLocationList');
+                    locationList.empty();
+                    data.storage_locations.forEach(function(item) {
+                        locationList.append(`<option value="${item}">`);
+                    });
+                }
+            }
+        });
+    }
 
     function createSparePart() {
         const formData = {

@@ -22,13 +22,26 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
-echo [3/3] 打包完成！
+echo [3/3] 整理打包文件...
+set DIST_DIR=dist\备品备件管理系统
+
+:: 确保外部配置文件和说明文档在根目录
+copy /y config.ini "%DIST_DIR%\"
+copy /y 使用说明.txt "%DIST_DIR%\"
+
+:: 确保 templates 和 static 在根目录（防止 PyInstaller 6+ 将其移动到 _internal）
+if not exist "%DIST_DIR%\templates" xcopy /e /i /y "%DIST_DIR%\_internal\templates" "%DIST_DIR%\templates"
+if not exist "%DIST_DIR%\static" xcopy /e /i /y "%DIST_DIR%\_internal\static" "%DIST_DIR%\static"
+
+echo 整理完成！
 echo.
-echo 可执行文件位置: dist\备品备件管理系统\备品备件管理系统.exe
+echo 打包完成！
+echo.
+echo 可执行文件位置: %DIST_DIR%\备品备件管理系统.exe
 echo.
 echo ============================================================
-echo 提示：程序运行时会自动打开浏览器
-echo       关闭方式：右键点击系统托盘图标选择退出
+echo 提示：将整个 "dist\备品备件管理系统" 文件夹复制到其他电脑即可运行
+echo       不要只复制单个 .exe 文件，否则会缺少依赖文件
 echo ============================================================
 echo.
 pause

@@ -64,7 +64,7 @@
                         <button class="btn btn-success" onclick="exportSpareParts()">
                             <i class="bi bi-file-earmark-excel"></i> 导出Excel
                         </button>
-                        <button class="btn btn-secondary" onclick="window.location.href='/historical-documents'">
+                        <button class="btn btn-secondary" onclick="window.location.href='/historical-documents'" title="历史文件管理">
                             <i class="bi bi-archive"></i> 历史文件
                         </button>
                         <button class="btn btn-success" onclick="exportCalibrationPlan()">
@@ -78,6 +78,14 @@
                         </button>
                         <button class="btn btn-info text-white" onclick="resetFilters()">
                             <i class="bi bi-arrow-clockwise"></i> 重置
+                        </button>
+                    </div>
+                    <div class="btn-group ms-2" role="group">
+                        <button class="btn btn-outline-primary" onclick="openFilesRoot()" title="打开文件管理根目录">
+                            <i class="bi bi-folder2"></i> 文件根目录
+                        </button>
+                        <button class="btn btn-outline-success" onclick="batchInitFolders()" title="为所有备件创建文件夹">
+                            <i class="bi bi-folder-plus"></i> 初始化文件夹
                         </button>
                     </div>
                 </div>
@@ -104,9 +112,9 @@
                             <th style="width: 8%;">存放地点</th>
                             <th style="width: 8%;">规格型号</th>
                             <th style="width: 8%;">出厂编号</th>
-                            <th style="width: 15%;">倒计时状态条</th>
+                            <th style="width: 13%;">倒计时状态条</th>
                             <th style="width: 7%;">使用状态</th>
-                            <th style="width: 8%;">存放地点</th>
+                            <th style="width: 5%;">文件</th>
                             <th style="width: 12%;">操作</th>
                         </tr>
                     </thead>
@@ -155,12 +163,12 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">系统</label>
-                            <select class="form-select" id="edit_ownership">
-                                <option value="">请选择</option>
-                                <option value="自观系统">自观系统</option>
-                                <option value="信息系统">信息系统</option>
-                                <option value="观测场">观测场</option>
-                            </select>
+                            <input type="text" class="form-control" id="edit_ownership" list="editOwnershipList" placeholder="选择或输入系统">
+                            <datalist id="editOwnershipList">
+                                <option value="自观系统">
+                                <option value="信息系统">
+                                <option value="观测场">
+                            </datalist>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">出厂编号</label>
@@ -185,7 +193,9 @@
                         </div>
                         <div class="col-md-12 mb-3">
                             <label class="form-label">存放地点</label>
-                            <input type="text" class="form-control" id="edit_storage_location">
+                            <input type="text" class="form-control" id="edit_storage_location" list="editStorageLocationList" placeholder="选择或输入存放地点">
+                            <datalist id="editStorageLocationList">
+                            </datalist>
                         </div>
                     </div>
                     
@@ -290,6 +300,12 @@
                     确定要删除这个备件吗？<br>
                     <small class="text-danger" style="color: #fca5a5 !important;">此操作不可恢复，所有相关记录也会被删除。</small>
                 </p>
+                <div class="form-check mt-3" style="border: 1px solid #ef4444; border-radius: 8px; padding: 1rem; background: rgba(239, 68, 68, 0.1);">
+                    <input class="form-check-input" type="checkbox" id="deleteFolderCheck">
+                    <label class="form-check-label" for="deleteFolderCheck" style="color: #fca5a5;">
+                        <i class="bi bi-folder-x"></i> 同时删除关联的文件夹及其所有文件
+                    </label>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> 取消</button>
@@ -303,11 +319,84 @@
 {% block extra_js %}
 <script>
     let deletePartId = null;
+    let folderStatus = {};  // 存储文件夹状态
+    let fieldOptions = {};  // 存储字段选项
 
     // 页面加载时获取备件列表
     $(document).ready(function() {
         loadSpareParts();
+        loadFolderStatus();  // 加载文件夹状态
+        loadFieldOptions();  // 加载字段选项
     });
+
+    // 加载字段选项
+    function loadFieldOptions() {
+        $.ajax({
+            url: '/api/spare-parts/options',
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    fieldOptions = response.data;
+                    updateFieldOptionsDisplay();
+                }
+            }
+        });
+    }
+
+    // 更新字段选项下拉列表
+    function updateFieldOptionsDisplay() {
+        // 更新编辑模态框中的系统选项
+        const ownershipList = $('#editOwnershipList');
+        const defaultOwnerships = ['自观系统', '信息系统', '观测场'];
+        const allOwnerships = [...new Set([...defaultOwnerships, ...(fieldOptions.ownerships || [])])];
+        ownershipList.empty();
+        allOwnerships.forEach(function(item) {
+            ownershipList.append(`<option value="${item}">`);
+        });
+        
+        // 更新编辑模态框中的存放地点选项
+        const locationList = $('#editStorageLocationList');
+        locationList.empty();
+        (fieldOptions.storage_locations || []).forEach(function(item) {
+            locationList.append(`<option value="${item}">`);
+        });
+    }
+
+    // 加载文件夹状态
+    function loadFolderStatus() {
+        $.ajax({
+            url: '/api/folder/spare-parts/status',
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    folderStatus = response.data;
+                    // 如果备件已加载，更新显示
+                    updateFolderStatusDisplay();
+                }
+            }
+        });
+    }
+
+    // 更新文件夹状态显示
+    function updateFolderStatusDisplay() {
+        $('.folder-status-cell').each(function() {
+            const partId = $(this).data('part-id');
+            if (folderStatus[partId]) {
+                const status = folderStatus[partId];
+                let html = '';
+                if (status.file_count > 0) {
+                    html = `<span class="badge bg-success" title="最后修改: ${status.last_modified || '未知'}">
+                        <i class="bi bi-folder-check"></i> ${status.file_count}
+                    </span>`;
+                } else {
+                    html = `<span class="badge bg-secondary" title="文件夹为空">
+                        <i class="bi bi-folder"></i> 0
+                    </span>`;
+                }
+                $(this).html(html);
+            }
+        });
+    }
 
     // 加载备件列表
     function loadSpareParts(filters = {}) {
@@ -318,6 +407,7 @@
             success: function(response) {
                 if (response.success) {
                     displaySpareParts(response.data);
+                    updateFolderStatusDisplay();  // 更新文件夹状态
                 } else {
                     showAlert('加载失败：' + response.message, 'danger');
                 }
@@ -419,7 +509,9 @@
                     <td>${part.product_number || '-'}</td>
                     <td>${inspectionBar}</td>
                     <td><span class="badge badge-status status-${part.usage_status}">${part.usage_status}</span></td>
-                    <td>${part.storage_location || '-'}</td>
+                    <td class="folder-status-cell text-center" data-part-id="${part.id}">
+                        <span class="text-muted"><i class="bi bi-hourglass"></i></span>
+                    </td>
                     <td>
                         <div class="btn-group btn-group-sm" role="group">
                             <button class="btn btn-primary" onclick="editPart(${part.id})" title="编辑">
@@ -428,8 +520,8 @@
                             <button class="btn btn-info" onclick="viewDetail(${part.id})" title="查看详情">
                                 <i class="bi bi-eye"></i>
                             </button>
-                            <button class="btn btn-success" onclick="viewFiles(${part.id})" title="文件管理">
-                                <i class="bi bi-folder"></i>
+                            <button class="btn btn-success" onclick="openPartFolder(${part.id})" title="打开文件夹">
+                                <i class="bi bi-folder2-open"></i>
                             </button>
                             <button class="btn btn-danger" onclick="deletePart(${part.id})" title="删除">
                                 <i class="bi bi-trash"></i>
@@ -618,21 +710,69 @@
         window.location.href = `/detail/${partId}`;
     }
 
-    // 查看文件
-    function viewFiles(partId) {
-        window.location.href = `/detail/${partId}#files-tab`;
-        // 延迟点击文件管理tab
-        setTimeout(function() {
-            const filesTab = document.querySelector('#files-tab');
-            if (filesTab) {
-                filesTab.click();
+    // 打开备件文件夹
+    function openPartFolder(partId) {
+        $.ajax({
+            url: `/api/folder/spare-part/${partId}/open`,
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    showAlert('已打开文件夹', 'success');
+                } else {
+                    showAlert('打开失败：' + response.message, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('网络错误，请稍后重试', 'danger');
             }
-        }, 100);
+        });
+    }
+
+    // 打开文件管理根目录
+    function openFilesRoot() {
+        $.ajax({
+            url: '/api/folder/root/open',
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    showAlert('已打开文件根目录', 'success');
+                } else {
+                    showAlert('打开失败：' + response.message, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('网络错误，请稍后重试', 'danger');
+            }
+        });
+    }
+
+    // 批量初始化文件夹
+    function batchInitFolders() {
+        if (!confirm('确定要为所有备件创建文件夹吗？\n已存在的文件夹不会受影响。')) {
+            return;
+        }
+        
+        $.ajax({
+            url: '/api/folder/spare-parts/batch-init',
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    showAlert(response.message, 'success');
+                    loadFolderStatus();  // 重新加载文件夹状态
+                } else {
+                    showAlert('初始化失败：' + response.message, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('网络错误，请稍后重试', 'danger');
+            }
+        });
     }
 
     // 删除备件
     function deletePart(partId) {
         deletePartId = partId;
+        $('#deleteFolderCheck').prop('checked', false);  // 重置复选框
         const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
         modal.show();
     }
@@ -640,14 +780,22 @@
     // 确认删除
     function confirmDelete() {
         if (deletePartId === null) return;
+        
+        const deleteFolder = $('#deleteFolderCheck').is(':checked');
+        const url = `/api/spare-parts/${deletePartId}${deleteFolder ? '?delete_folder=true' : ''}`;
 
         $.ajax({
-            url: `/api/spare-parts/${deletePartId}`,
+            url: url,
             method: 'DELETE',
             success: function(response) {
                 if (response.success) {
-                    showAlert('删除成功', 'success');
+                    let msg = '删除成功';
+                    if (response.data && response.data.folder_deleted) {
+                        msg += '，文件夹已删除';
+                    }
+                    showAlert(msg, 'success');
                     loadSpareParts();
+                    loadFolderStatus();  // 重新加载文件夹状态
                     bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
                 } else {
                     showAlert('删除失败：' + response.message, 'danger');
