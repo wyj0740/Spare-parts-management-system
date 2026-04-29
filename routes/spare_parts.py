@@ -12,7 +12,6 @@ from flask import Blueprint, request, send_file
 from models import db, SparePart
 from routes.common import APIResponse, login_required
 from routes.audit import write_operation_log, write_field_changes
-from routes.audit import write_operation_log, write_field_changes
 from utils.folder_manager import create_spare_part_folder, rename_spare_part_folder, delete_spare_part_folder
 
 spare_parts_bp = Blueprint('spare_parts', __name__)
@@ -231,16 +230,10 @@ def update_spare_part(part_id):
         if 'product_number' in data:
             part.product_number = data['product_number']
 
-        write_operation_log('UPDATE', target_id=part_id, target_name=part.name)
-        write_field_changes(part_id, old_snapshot, part.to_dict())
         db.session.commit()
 
         if old_asset_number != part.asset_number or old_name != part.name:
             rename_spare_part_folder(old_asset_number, old_name, part.asset_number, part.name)
-
-        write_operation_log('UPDATE', target_id=part_id, target_name=part.name)
-        write_field_changes(part_id, old_snapshot, part.to_dict())
-        db.session.commit()
 
         return APIResponse.success(data=part.to_dict(), message='备件更新成功')
     except Exception as e:
@@ -473,6 +466,9 @@ def import_spare_parts_preview():
 
 
 
+@spare_parts_bp.route('/api/spare-parts/import', methods=['POST'])
+@login_required
+def import_spare_parts():
     """批量导入备件（Excel上传）"""
     try:
         if 'file' not in request.files:

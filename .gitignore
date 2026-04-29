@@ -71,6 +71,13 @@ backup_config.json
 # User config (contains sensitive data)
 config.ini
 
+# Temporary scripts
+tmp_*.py
+read_xls.py
+convert_xls_to_import.py
+do_import.py
+*.xlsx
+
 # Error page templates (auto-generated)
 # templates/404.html
 # templates/500.html
