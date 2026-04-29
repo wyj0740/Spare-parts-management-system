@@ -2,34 +2,53 @@
 
 {% block title %}创建备件 - 备品备件管理系统{% endblock %}
 
+{% block breadcrumb %}
+<nav class="breadcrumb-nav">
+    <a href="/"><i class="bi bi-house-door"></i> 首页</a>
+    <i class="bi bi-chevron-right"></i>
+    <a href="/">备件列表</a>
+    <i class="bi bi-chevron-right"></i>
+    <span class="active">创建备件</span>
+</nav>
+{% endblock %}
+
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-plus-circle"></i> 创建新备件</h5>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title">创建新备件</h1>
+        <div class="page-subtitle">填写备件基本信息并保存</div>
+    </div>
+    <button class="btn btn-secondary" onclick="window.location.href='/'">
+        <i class="bi bi-arrow-left"></i> 返回列表
+    </button>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-plus-circle"></i> 创建新备件
                 </div>
                 <div class="card-body">
                     <form id="createSparePartForm">
                         <div class="row">
                             <!-- 基本信息 -->
                             <div class="col-md-12">
-                                <h6 class="border-bottom pb-2 mb-3" style="color: #93c5fd;">基本信息</h6>
+                                <div class="section-header"><i class="bi bi-info-circle"></i> 基本信息</div>
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="name" class="form-label">备件名称 <span class="text-danger">*</span></label>
+                                <label for="name" class="form-label"><i class="bi bi-box-seam"></i> 备件名称 <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="name" name="name" required>
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="assetNumber" class="form-label">资产编号 <span class="text-danger">*</span></label>
+                                <label for="assetNumber" class="form-label"><i class="bi bi-upc-scan"></i> 资产编号 <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="assetNumber" name="asset_number" required>
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="ownership" class="form-label">系统</label>
+                                <label for="ownership" class="form-label"><i class="bi bi-layers"></i> 系统</label>
                                 <input type="text" class="form-control" id="ownership" name="ownership" list="ownershipList" placeholder="选择或输入系统">
                                 <datalist id="ownershipList">
                                     <option value="自观系统">
@@ -39,22 +58,22 @@
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="productNumber" class="form-label">出厂编号</label>
+                                <label for="productNumber" class="form-label"><i class="bi bi-upc"></i> 出厂编号</label>
                                 <input type="text" class="form-control" id="productNumber" name="product_number">
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="specifications" class="form-label">规格型号</label>
+                                <label for="specifications" class="form-label"><i class="bi bi-rulers"></i> 规格型号</label>
                                 <input type="text" class="form-control" id="specifications" name="specifications">
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="manufacturer" class="form-label">生产厂家</label>
+                                <label for="manufacturer" class="form-label"><i class="bi bi-buildings"></i> 生产厂家</label>
                                 <input type="text" class="form-control" id="manufacturer" name="manufacturer">
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="usageStatus" class="form-label">使用状态</label>
+                                <label for="usageStatus" class="form-label"><i class="bi bi-tag"></i> 使用状态</label>
                                 <select class="form-select" id="usageStatus" name="usage_status">
                                     <option value="在库" selected>在库</option>
                                     <option value="在用">在用</option>
@@ -64,7 +83,7 @@
                             </div>
                             
                             <div class="col-md-12 mb-3">
-                                <label for="storageLocation" class="form-label">存放地点</label>
+                                <label for="storageLocation" class="form-label"><i class="bi bi-geo-alt"></i> 存放地点</label>
                                 <input type="text" class="form-control" id="storageLocation" name="storage_location" list="storageLocationList" placeholder="选择或输入存放地点">
                                 <datalist id="storageLocationList">
                                 </datalist>
@@ -72,52 +91,57 @@
                             
                             <!-- 日期和财务信息 -->
                             <div class="col-md-12 mt-3">
-                                <h6 class="border-bottom pb-2 mb-3" style="color: #93c5fd;">日期和财务信息</h6>
+                                <div class="section-header"><i class="bi bi-calendar-check"></i> 日期和财务信息</div>
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="purchaseDate" class="form-label">采购日期</label>
+                                <label for="purchaseDate" class="form-label"><i class="bi bi-cart-check"></i> 采购日期</label>
                                 <input type="date" class="form-control" id="purchaseDate" name="purchase_date">
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="lastInspectionDate" class="form-label">上次检定日期</label>
+                                <label for="lastInspectionDate" class="form-label"><i class="bi bi-calendar-check"></i> 上次检定日期</label>
                                 <input type="date" class="form-control" id="lastInspectionDate" name="last_inspection_date">
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="nextInspectionDate" class="form-label">下次检定日期</label>
+                                <label for="nextInspectionDate" class="form-label"><i class="bi bi-calendar-event"></i> 下次检定日期</label>
                                 <input type="date" class="form-control" id="nextInspectionDate" name="next_inspection_date">
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="warrantyPeriod" class="form-label">质保期（月）</label>
+                                <label for="warrantyPeriod" class="form-label"><i class="bi bi-shield-check"></i> 质保期（月）</label>
                                 <input type="number" class="form-control" id="warrantyPeriod" name="warranty_period" min="0">
                             </div>
                             
                             <div class="col-md-6 mb-3">
-                                <label for="unitPrice" class="form-label">单价（元）</label>
+                                <label for="unitPrice" class="form-label"><i class="bi bi-currency-yen"></i> 单价（元）</label>
                                 <input type="number" class="form-control" id="unitPrice" name="unit_price" step="0.01" min="0">
                             </div>
                             
                             <!-- 备注 -->
                             <div class="col-md-12 mt-3">
-                                <h6 class="border-bottom pb-2 mb-3" style="color: #93c5fd;">备注信息</h6>
+                                <div class="section-header"><i class="bi bi-chat-left-text"></i> 备注信息</div>
                             </div>
                             
                             <div class="col-md-12 mb-3">
-                                <label for="remarks" class="form-label">备注</label>
+                                <label for="remarks" class="form-label"><i class="bi bi-chat-left-text"></i> 备注</label>
                                 <textarea class="form-control" id="remarks" name="remarks" rows="3"></textarea>
                             </div>
                         </div>
                         
-                        <div class="d-flex justify-content-end gap-2 mt-4">
-                            <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">
-                                <i class="bi bi-x-circle"></i> 取消
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearDraft()" id="clearDraftBtn" style="display:none;">
+                                <i class="bi bi-trash"></i> 清除草稿
                             </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check-circle"></i> 创建备件
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">
+                                    <i class="bi bi-x-circle"></i> 取消
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-circle"></i> 创建备件
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -129,15 +153,84 @@
 
 {% block extra_js %}
 <script>
+    const DRAFT_KEY = 'sparePartDraft';
+
     $(document).ready(function() {
         // 加载下拉选项
         loadOptions();
-        
+
+        // 草稿恢复
+        const draft = localStorage.getItem(DRAFT_KEY);
+        if (draft) {
+            try {
+                const data = JSON.parse(draft);
+                if (data && Object.values(data).some(v => v)) {
+                    showAlert('检测到未提交的草稿，已自动恢复', 'info');
+                    restoreDraft(data);
+                    $('#clearDraftBtn').show();
+                }
+            } catch (e) { localStorage.removeItem(DRAFT_KEY); }
+        }
+
+        // 自动保存草稿（防抖 800ms）
+        let draftTimer;
+        $('#createSparePartForm input, #createSparePartForm select, #createSparePartForm textarea').on('input change', function() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(saveDraft, 800);
+        });
+
         $('#createSparePartForm').submit(function(e) {
             e.preventDefault();
             createSparePart();
         });
     });
+
+    function saveDraft() {
+        const data = {
+            name: $('#name').val(),
+            asset_number: $('#assetNumber').val(),
+            ownership: $('#ownership').val(),
+            product_number: $('#productNumber').val(),
+            specifications: $('#specifications').val(),
+            manufacturer: $('#manufacturer').val(),
+            usage_status: $('#usageStatus').val(),
+            storage_location: $('#storageLocation').val(),
+            purchase_date: $('#purchaseDate').val(),
+            last_inspection_date: $('#lastInspectionDate').val(),
+            next_inspection_date: $('#nextInspectionDate').val(),
+            warranty_period: $('#warrantyPeriod').val(),
+            unit_price: $('#unitPrice').val(),
+            remarks: $('#remarks').val()
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+        $('#clearDraftBtn').show();
+    }
+
+    function restoreDraft(data) {
+        if (data.name) $('#name').val(data.name);
+        if (data.asset_number) $('#assetNumber').val(data.asset_number);
+        if (data.ownership) $('#ownership').val(data.ownership);
+        if (data.product_number) $('#productNumber').val(data.product_number);
+        if (data.specifications) $('#specifications').val(data.specifications);
+        if (data.manufacturer) $('#manufacturer').val(data.manufacturer);
+        if (data.usage_status) $('#usageStatus').val(data.usage_status);
+        if (data.storage_location) $('#storageLocation').val(data.storage_location);
+        if (data.purchase_date) $('#purchaseDate').val(data.purchase_date);
+        if (data.last_inspection_date) $('#lastInspectionDate').val(data.last_inspection_date);
+        if (data.next_inspection_date) $('#nextInspectionDate').val(data.next_inspection_date);
+        if (data.warranty_period) $('#warrantyPeriod').val(data.warranty_period);
+        if (data.unit_price) $('#unitPrice').val(data.unit_price);
+        if (data.remarks) $('#remarks').val(data.remarks);
+    }
+
+    function clearDraft() {
+        if (confirm('确定要清除草稿吗？')) {
+            localStorage.removeItem(DRAFT_KEY);
+            $('#createSparePartForm')[0].reset();
+            $('#clearDraftBtn').hide();
+            showAlert('草稿已清除', 'success');
+        }
+    }
 
     function loadOptions() {
         $.ajax({
@@ -198,6 +291,7 @@
             data: JSON.stringify(formData),
             success: function(response) {
                 if (response.success) {
+                    localStorage.removeItem(DRAFT_KEY);
                     showAlert('备件创建成功！', 'success');
                     setTimeout(function() {
                         window.location.href = '/';
@@ -217,17 +311,6 @@
         });
     }
 
-    function showAlert(message, type) {
-        const alert = $(`
-            <div class="alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" role="alert" style="z-index: 9999; min-width: 300px;">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `);
-        $('body').append(alert);
-        setTimeout(function() {
-            alert.alert('close');
-        }, 3000);
-    }
+
 </script>
 {% endblock %}

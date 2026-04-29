@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}系统设置 - 备品备件管理系统{% endblock %}
+
+{% block breadcrumb %}
+<nav class="breadcrumb-nav">
+    <a href="/"><i class="bi bi-house-door"></i> 首页</a>
+    <i class="bi bi-chevron-right"></i>
+    <span class="active">系统设置</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title">系统设置</h1>
+        <div class="page-subtitle">修改服务器配置、密码等参数（部分配置重启后生效）</div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- 系统信息 -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-info-circle"></i> 系统信息</div>
+            <div class="card-body">
+                <div class="row g-3" id="sysInfoArea">
+                    <div class="col text-center text-muted"><div class="spinner-border spinner-border-sm"></div> 加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 服务器配置 -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-server"></i> 服务器配置</div>
+            <div class="card-body">
+                <div class="alert alert-warning py-2 mb-3">
+                    <i class="bi bi-exclamation-triangle"></i> 修改后需<strong>重启程序</strong>才能生效
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">监听地址</label>
+                    <select class="form-select" id="settingHost">
+                        <option value="127.0.0.1">127.0.0.1（仅本机访问）</option>
+                        <option value="0.0.0.0">0.0.0.0（局域网可访问）</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">端口号</label>
+                    <input type="number" class="form-control" id="settingPort" min="1024" max="65535" placeholder="5000">
+                    <div class="form-text">范围 1024 ~ 65535</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">会话保持时长（小时）</label>
+                    <input type="number" class="form-control" id="settingSessionHours" min="1" max="168" placeholder="24">
+                    <div class="form-text">范围 1 ~ 168，修改后立即对新登录用户生效</div>
+                </div>
+                <button class="btn btn-primary" onclick="saveServerSettings()">
+                    <i class="bi bi-floppy"></i> 保存服务器配置
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改密码 -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-shield-lock"></i> 修改密码</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">原密码</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="oldPassword" placeholder="请输入原密码">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePwdVisibility('oldPassword', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">新密码</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="newPassword" placeholder="新密码（至少4位）">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePwdVisibility('newPassword', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">确认新密码</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="confirmPassword" placeholder="再次输入新密码">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePwdVisibility('confirmPassword', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button class="btn btn-warning" onclick="changePassword()">
+                    <i class="bi bi-key"></i> 修改密码
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 备份配置（只读展示） -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-database-fill-down"></i> 备份配置（在 config.ini 中手动修改）</div>
+            <div class="card-body">
+                <div class="row g-3" id="backupInfoArea">
+                    <div class="col text-center text-muted"><div class="spinner-border spinner-border-sm"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    loadSystemInfo();
+});
+
+function loadSystemInfo() {
+    $.ajax({
+        url: '/api/settings/info', method: 'GET',
+        success: function(response) {
+            if (!response.success) return;
+            const d = response.data;
+            // 系统信息卡
+            $('#sysInfoArea').html(`
+                <div class="col-md-3">
+                    <div class="text-muted small mb-1">版本号</div>
+                    <div class="fw-bold">${d.version || '-'}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small mb-1">监听地址</div>
+                    <div class="fw-bold">${d.host}:${d.port}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small mb-1">会话时长</div>
+                    <div class="fw-bold">${d.session_lifetime_hours} 小时</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small mb-1">自动备份</div>
+                    <div class="fw-bold">${d.auto_backup_enabled ? '已启用，' + d.backup_time : '未启用'}</div>
+                </div>
+            `);
+            // 服务器配置填充
+            $('#settingHost').val(d.host);
+            $('#settingPort').val(d.port);
+            $('#settingSessionHours').val(d.session_lifetime_hours);
+            // 备份信息
+            $('#backupInfoArea').html(`
+                <div class="col-md-3">
+                    <div class="text-muted small mb-1">自动备份</div>
+                    <div>${d.auto_backup_enabled ? '<span class="badge bg-success">已启用</span>' : '<span class="badge bg-secondary">未启用</span>'}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small mb-1">备份时间</div>
+                    <div class="fw-bold">${d.backup_time || '-'}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small mb-1">保留天数</div>
+                    <div class="fw-bold">${d.backup_keep_days} 天</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small mb-1">备份类型</div>
+                    <div class="fw-bold">${{database:'仅数据库', excel:'仅Excel', both:'数据库+Excel'}[d.backup_type] || d.backup_type}</div>
+                </div>
+            `);
+        }
+    });
+}
+
+function saveServerSettings() {
+    const data = {
+        host: $('#settingHost').val(),
+        port: parseInt($('#settingPort').val()),
+        session_lifetime_hours: parseInt($('#settingSessionHours').val())
+    };
+    if (!data.port || data.port < 1024 || data.port > 65535) {
+        showAlert('端口范围须在 1024~65535 之间', 'warning'); return;
+    }
+    if (!data.session_lifetime_hours || data.session_lifetime_hours < 1 || data.session_lifetime_hours > 168) {
+        showAlert('会话时长范围须在 1~168 小时之间', 'warning'); return;
+    }
+    showProgress();
+    $.ajax({
+        url: '/api/settings/server', method: 'PUT',
+        contentType: 'application/json', data: JSON.stringify(data),
+        success: function(response) {
+            hideProgress();
+            if (response.success) {
+                showAlert(response.message, 'success');
+                loadSystemInfo();
+            } else {
+                showAlert('保存失败：' + response.message, 'danger');
+            }
+        },
+        error: function() { hideProgress(); showAlert('网络错误', 'danger'); }
+    });
+}
+
+function changePassword() {
+    const data = {
+        old_password: $('#oldPassword').val(),
+        new_password: $('#newPassword').val(),
+        confirm_password: $('#confirmPassword').val()
+    };
+    if (!data.old_password || !data.new_password || !data.confirm_password) {
+        showAlert('请填写完整的密码信息', 'warning'); return;
+    }
+    if (data.new_password !== data.confirm_password) {
+        showAlert('两次输入的新密码不一致', 'warning'); return;
+    }
+    if (data.new_password.length < 4) {
+        showAlert('新密码长度不能少于4位', 'warning'); return;
+    }
+    showProgress();
+    $.ajax({
+        url: '/api/settings/password', method: 'PUT',
+        contentType: 'application/json', data: JSON.stringify(data),
+        success: function(response) {
+            hideProgress();
+            if (response.success) {
+                showAlert(response.message, 'success');
+                $('#oldPassword, #newPassword, #confirmPassword').val('');
+            } else {
+                showAlert('修改失败：' + response.message, 'danger');
+            }
+        },
+        error: function() { hideProgress(); showAlert('网络错误', 'danger'); }
+    });
+}
+
+function togglePwdVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        $(btn).find('i').removeClass('bi-eye').addClass('bi-eye-slash');
+    } else {
+        input.type = 'password';
+        $(btn).find('i').removeClass('bi-eye-slash').addClass('bi-eye');
+    }
+}
+</script>
+{% endblock %}

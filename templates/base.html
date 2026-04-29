@@ -1,548 +1,161 @@
 <!DOCTYPE html>
-<!--
-  备品备件管理系统
-  Author: wyj
-  License: MIT License
--->
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}备品备件管理系统{% endblock %}</title>
-    <!-- Bootstrap CSS -->
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link href="{{ url_for('static', filename='css/bootstrap-icons.css') }}" rel="stylesheet">
-    <style>
-        :root {
-            --primary-color: #2563eb;
-            --secondary-color: #10b981;
-            --danger-color: #ef4444;
-            --warning-color: #f59e0b;
-            --info-color: #06b6d4;
-            --light-bg: #f8fafc;
-            --card-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            --card-hover-shadow: 0 4px 20px rgba(0,0,0,0.12);
-        }
-        
-        body {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #f0f9ff 0%, #f0f9ff 100%);
-            background-attachment: fixed;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #1e293b;
-        }
-        
-        /* 导航栏美化 */
-        .navbar {
-            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%) !important;
-            box-shadow: 0 2px 15px rgba(96, 165, 250, 0.3);
-            padding: 1rem 0;
-        }
-        
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.6rem;
-            letter-spacing: 0.5px;
-            transition: transform 0.3s ease;
-            color: #ffffff !important;
-        }
-        
-        .navbar-brand i {
-            color: #ffffff !important;
-        }
-        
-        .navbar-brand:hover {
-            transform: scale(1.05);
-        }
-        
-        .nav-link {
-            font-weight: 500;
-            padding: 0.5rem 1.2rem !important;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            margin: 0 0.3rem;
-            color: #e0e7ff !important;
-        }
-        
-        .nav-link:hover {
-            background-color: rgba(255,255,255,0.2);
-            transform: translateY(-2px);
-            color: #ffffff !important;
-        }
-        
-        /* 主容器 */
-        .main-container {
-            padding: 30px 0;
-            min-height: calc(100vh - 200px);
-        }
-        
-        /* 卡片美化 */
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: var(--card-shadow);
-            margin-bottom: 25px;
-            transition: all 0.3s ease;
-            background: white;
-        }
-        
-        .card:hover {
-            box-shadow: var(--card-hover-shadow);
-            transform: translateY(-3px);
-        }
-        
-        .card-header {
-            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-            color: #ffffff;
-            border-radius: 15px 15px 0 0 !important;
-            padding: 1.2rem 1.5rem;
-            font-weight: 600;
-            font-size: 1.2rem;
-            border: none;
-        }
-        
-        .card-body {
-            padding: 1.5rem;
-            background: white;
-            color: #1e293b;
-        }
-        
-        /* 按钮美化 */
-        .btn {
-            border-radius: 8px;
-            padding: 0.5rem 1.2rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            border: none;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-            box-shadow: 0 4px 12px rgba(96, 165, 250, 0.4);
-            color: #ffffff;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(96, 165, 250, 0.5);
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        }
-        
-        .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-            color: #ffffff;
-        }
-        
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-        }
-        
-        .btn-danger {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-            color: #ffffff;
-        }
-        
-        .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-        }
-        
-        .btn-info {
-            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-            color: #ffffff;
-            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
-        }
-        
-        .btn-info:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(6, 182, 212, 0.5);
-        }
-        
-        .btn-warning {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: #ffffff;
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-        }
-        
-        .btn-warning:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.5);
-        }
-        
-        .btn-sm {
-            padding: 0.35rem 0.8rem;
-            font-size: 0.875rem;
-        }
-        
-        /* 表格美化 */
-        .table {
-            border-radius: 10px;
-            overflow: hidden;
-            color: #1e293b;
-        }
-        
-        .table thead th {
-            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-            color: #ffffff;
-            font-weight: 600;
-            border: none;
-            padding: 1rem;
-            vertical-align: middle;
-        }
-        
-        .table tbody tr {
-            transition: all 0.3s ease;
-            border-bottom: 1px solid #e2e8f0;
-            background: white;
-        }
-        
-        .table tbody tr:hover {
-            background: linear-gradient(90deg, #eff6ff 0%, #dbeafe 100%);
-            transform: scale(1.01);
-            box-shadow: 0 2px 8px rgba(96, 165, 250, 0.15);
-        }
-        
-        .table tbody tr:hover td {
-            color: #0c4a6e !important;
-        }
-        
-        .table tbody td {
-            padding: 1rem;
-            vertical-align: middle;
-            color: #1e293b;
-            border-color: #e2e8f0;
-        }
-        
-        .table-responsive {
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            background: white;
-        }
-        
-        /* 状态徽章美化 */
-        .badge-status {
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            letter-spacing: 0.3px;
-        }
-        
-        .status-在库 {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: #ffffff;
-            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
-        }
-        
-        .status-在用 {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-            color: #ffffff;
-            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
-        }
-        
-        .status-维修中 {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: #ffffff;
-            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
-        }
-        
-        .status-报废 {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: #ffffff;
-            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
-        }
-        
-        /* 输入框美化 */
-        .form-control, .form-select {
-            border-radius: 8px;
-            border: 2px solid #e2e8f0;
-            padding: 0.6rem 1rem;
-            transition: all 0.3s ease;
-            background: white;
-            color: #1e293b;
-        }
-        
-        /* 日期输入框图标颜色 */
-        .form-control[type="date"]::-webkit-calendar-picker-indicator {
-            cursor: pointer;
-            opacity: 0.7;
-        }
-        
-        .form-control[type="date"]::-webkit-calendar-picker-indicator:hover {
-            opacity: 1;
-        }
-        
-        .form-control:focus, .form-select:focus {
-            border-color: #60a5fa;
-            box-shadow: 0 0 0 0.2rem rgba(96, 165, 250, 0.25);
-            background: white;
-        }
-        
-        .form-label {
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 0.5rem;
-        }
-        
-        .form-label i {
-            color: #60a5fa;
-        }
-        
-        /* 进度条美化 */
-        .progress {
-            border-radius: 10px;
-            background-color: #e5e7eb;
-            overflow: visible;
-        }
-        
-        .progress-bar {
-            border-radius: 10px;
-            transition: width 0.6s ease;
-        }
-        
-        .bg-success {
-            background: linear-gradient(90deg, #10b981 0%, #059669 100%) !important;
-        }
-        
-        .bg-warning {
-            background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%) !important;
-        }
-        
-        .bg-danger {
-            background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%) !important;
-        }
-        
-        /* 页脚美化 */
-        footer {
-            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%) !important;
-            color: #ffffff !important;
-            border-top: none !important;
-            box-shadow: 0 -2px 15px rgba(96, 165, 250, 0.3);
-        }
-        
-        footer p {
-            color: #e0e7ff !important;
-            margin: 0;
-        }
-        
-        /* 模态框美化 */
-        .modal-content {
-            border-radius: 15px;
-            border: none;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            background: white;
-            color: #1e293b;
-        }
-        
-        .modal-header {
-            border-radius: 15px 15px 0 0;
-            border-bottom: 1px solid #e5e7eb;
-            padding: 1.5rem;
-            background: #f9fafb;
-        }
-        
-        .modal-body {
-            padding: 1.5rem;
-            background: white;
-        }
-        
-        .modal-footer {
-            border-top: 1px solid #e5e7eb;
-            padding: 1.5rem;
-            background: white;
-        }
-        
-        /* 搜索框美化 */
-        .input-group {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            border-radius: 8px;
-        }
-        
-        .input-group .form-control {
-            border-right: none;
-        }
-        
-        .input-group-text {
-            background: #f3f4f6;
-            border: 2px solid #e2e8f0;
-            color: #1e293b;
-        }
-        
-        .input-group-text i {
-            color: #60a5fa;
-        }
-        
-        /* 文本颜色优化 */
-        .text-muted {
-            color: #6b7280 !important;
-        }
-        
-        .text-white {
-            color: #ffffff !important;
-        }
-        
-        .text-danger {
-            color: #dc2626 !important;
-        }
-        
-        .text-warning {
-            color: #d97706 !important;
-        }
-        
-        .text-success {
-            color: #059669 !important;
-        }
-        
-        .text-primary {
-            color: #60a5fa !important;
-        }
-        
-        .text-info {
-            color: #0891b2 !important;
-        }
-        
-        /* 图标颜色优化 */
-        .bi {
-            color: inherit;
-        }
-        
-        .card-header i,
-        .modal-header i,
-        .btn i {
-            color: inherit !important;
-        }
-        
-        /* 关闭按钮优化 */
-        .btn-close {
-            opacity: 0.5;
-        }
-        
-        .btn-close:hover {
-            opacity: 1;
-        }
-        
-        .btn-close-white {
-            filter: invert(1);
-        }
-        
-        /* Tab导航优化 */
-        .nav-tabs .nav-link {
-            color: #64748b;
-            border: none;
-            background: transparent;
-        }
-        
-        .nav-tabs .nav-link:hover {
-            color: #1e293b;
-            background: #f1f5f9;
-            border: none;
-        }
-        
-        .nav-tabs .nav-link.active {
-            color: #3b82f6 !important;
-            background: #eff6ff !important;
-            border: none;
-        }
-        
-        .nav-tabs .nav-link i {
-            color: inherit;
-        }
-        
-
-        /* 响应式优化 */
-        @media (max-width: 768px) {
-            .navbar-brand {
-                font-size: 1.3rem;
-            }
-            .card-body {
-                padding: 1rem;
-            }
-        }
-    </style>
+    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- 导航栏 -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/">
-                <i class="bi bi-box-seam"></i> 备品备件管理系统
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/">
-                            <i class="bi bi-list-ul"></i> 备件列表
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/create">
-                            <i class="bi bi-plus-circle"></i> 创建备件
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/backup">
-                            <i class="bi bi-database-fill-down"></i> 数据备份
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="logout(); return false;">
-                            <i class="bi bi-box-arrow-right"></i> 登出
-                        </a>
-                    </li>
-                </ul>
+    <!-- 顶部进度条 -->
+    <div id="topProgressBar"><div class="progress-bar-inner"></div></div>
+
+    <!-- 移动端菜单按钮 -->
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" title="菜单">
+        <i class="bi bi-list"></i>
+    </button>
+
+    <!-- 移动端遮罩 -->
+    <div class="mobile-menu-overlay" onclick="toggleMobileMenu()"></div>
+
+    <div class="app-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <i class="bi bi-box-seam"></i>
+                <span>备件管理系统</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a class="nav-item" href="/" id="nav-home">
+                    <i class="bi bi-list-ul"></i>
+                    <span>备件列表</span>
+                </a>
+                <a class="nav-item" href="/create" id="nav-create">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>创建备件</span>
+                </a>
+                <a class="nav-item" href="/backup" id="nav-backup">
+                    <i class="bi bi-database-fill-down"></i>
+                    <span>数据备份</span>
+                </a>
+                <a class="nav-item" href="/historical-documents" id="nav-docs">
+                    <i class="bi bi-archive"></i>
+                    <span>历史文件</span>
+                </a>
+                <a class="nav-item" href="/audit" id="nav-audit">
+                    <i class="bi bi-journal-text"></i>
+                    <span>操作日志</span>
+                </a>
+                <a class="nav-item" href="/settings" id="nav-settings">
+                    <i class="bi bi-gear"></i>
+                    <span>系统设置</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="nav-item" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>登出</span>
+                </button>
+                <div class="sidebar-version" id="sidebarVersion"></div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <div class="main-area">
+            <div class="content-wrapper">
+                {% block breadcrumb %}{% endblock %}
+                {% block content %}{% endblock %}
+            </div>
+            <div class="app-footer">
+                备品备件管理系统 | Author: wyj | License: MIT
             </div>
         </div>
-    </nav>
-
-    <!-- 主内容区 -->
-    <div class="container-fluid main-container">
-        {% block content %}{% endblock %}
     </div>
 
-    <!-- 页脚版权信息 -->
-    <footer class="text-center py-4 mt-5">
-        <div class="container">
-            <p class="mb-0">
-                <small>备品备件管理系统 | Author: wyj | License: MIT | Built with ❤️ using Flask &amp; Bootstrap</small>
-            </p>
-        </div>
-    </footer>
-
-    <!-- Bootstrap Bundle with Popper -->
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    <!-- jQuery -->
     <script src="{{ url_for('static', filename='js/jquery-3.6.0.min.js') }}"></script>
-    
     <script>
-    // 登出功能
     function logout() {
         if (confirm('确定要登出吗？')) {
             $.ajax({
-                url: '/api/logout',
-                method: 'POST',
-                success: function(response) {
-                    if (response.success) {
-                        window.location.href = '/login';
-                    }
-                },
-                error: function() {
-                    window.location.href = '/login';
-                }
+                url: '/api/logout', method: 'POST',
+                success: function(r) { if (r.success) window.location.href = '/login'; },
+                error: function() { window.location.href = '/login'; }
             });
         }
     }
+
+    function showAlert(message, type) {
+        const titles = { success: '操作成功', danger: '发生错误', warning: '请注意', info: '提示' };
+        const icons = { success: 'bi-check-circle', danger: 'bi-x-circle', warning: 'bi-exclamation-triangle', info: 'bi-info-circle' };
+        const toastType = type === 'danger' ? 'toast-danger' : 'toast-' + type;
+        const toast = $(`
+            <div class="toast-alert ${toastType}" role="alert">
+                <div class="toast-icon"><i class="bi ${icons[type] || 'bi-info-circle'}"></i></div>
+                <div class="toast-content">
+                    <div class="toast-title">${titles[type] || '提示'}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="$(this).closest('.toast-alert').addClass('hiding'); setTimeout(()=>$(this).closest('.toast-alert').remove(), 260);"><i class="bi bi-x-lg"></i></button>
+            </div>`);
+        $('body').append(toast);
+        setTimeout(function() { toast.addClass('hiding'); setTimeout(() => toast.remove(), 260); }, 3500);
+    }
+
+    function showProgress() { $('#topProgressBar').removeClass('done').addClass('active'); }
+    function hideProgress() { $('#topProgressBar').addClass('done'); setTimeout(() => $('#topProgressBar').removeClass('active done'), 300); }
+
+    function toggleMobileMenu() {
+        $('.sidebar').toggleClass('open');
+        $('.mobile-menu-overlay').fadeToggle(200);
+    }
+
+    // 侧边栏当前项高亮
+    $(document).ready(function() {
+        const path = window.location.pathname;
+        $('.sidebar-nav .nav-item').removeClass('active');
+        if (path === '/' || path === '') $('#nav-home').addClass('active');
+        else if (path === '/create') $('#nav-create').addClass('active');
+        else if (path === '/backup') $('#nav-backup').addClass('active');
+        else if (path === '/historical-documents') $('#nav-docs').addClass('active');
+        else if (path === '/audit') $('#nav-audit').addClass('active');
+        else if (path === '/settings') $('#nav-settings').addClass('active');
+        else if (path.startsWith('/detail')) $('#nav-home').addClass('active');
+
+        // 加载版本号
+        $.ajax({
+            url: '/api/settings/info', method: 'GET',
+            success: function(r) {
+                if (r.success && r.data.version) {
+                    $('#sidebarVersion').text(r.data.version);
+                }
+            }
+        });
+    });
+
+    // 全局键盘快捷键
+    $(document).keydown(function(e) {
+        // ESC 关闭所有模态框
+        if (e.key === 'Escape') {
+            $('.modal.show').each(function() {
+                const inst = bootstrap.Modal.getInstance(this);
+                if (inst) inst.hide();
+            });
+        }
+        // 忽略 input/textarea 中的快捷键（除了ESC）
+        const tag = e.target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+        // Ctrl+N 新建备件
+        if (e.ctrlKey && (e.key === 'n' || e.key === 'N')) {
+            e.preventDefault();
+            window.location.href = '/create';
+        }
+    });
     </script>
-    
     {% block extra_js %}{% endblock %}
 </body>
 </html>

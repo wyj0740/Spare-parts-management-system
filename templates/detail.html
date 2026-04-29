@@ -2,17 +2,28 @@
 
 {% block title %}备件详情 - 备品备件管理系统{% endblock %}
 
-{% block content %}
-<div class="container-fluid">
-    <!-- 返回按钮 -->
-    <div class="mb-3">
-        <button class="btn btn-secondary" onclick="window.location.href='/'">
-            <i class="bi bi-arrow-left"></i> 返回列表
-        </button>
-    </div>
+{% block breadcrumb %}
+<nav class="breadcrumb-nav">
+    <a href="/"><i class="bi bi-house-door"></i> 首页</a>
+    <i class="bi bi-chevron-right"></i>
+    <a href="/">备件列表</a>
+    <i class="bi bi-chevron-right"></i>
+    <span class="active">备件详情</span>
+</nav>
+{% endblock %}
 
-    <!-- 备件基本信息 -->
-    <div class="card">
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title">备件详情</h1>
+        <div class="page-subtitle">查看和管理备件的完整信息及记录</div>
+    </div>
+    <button class="btn btn-secondary" onclick="window.location.href='/'">
+        <i class="bi bi-arrow-left"></i> 返回列表
+    </button>
+</div>
+
+<div class="card">
         <div class="card-header bg-primary text-white">
             <h5 class="mb-0"><i class="bi bi-info-circle"></i> 备件基本信息</h5>
         </div>
@@ -52,6 +63,11 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab">
                         <i class="bi bi-file-earmark-text"></i> 文件管理
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="changelog-tab" data-bs-toggle="tab" data-bs-target="#changelog" type="button" role="tab" onclick="loadFieldChanges()">
+                        <i class="bi bi-clock-history"></i> 变更历史
                     </button>
                 </li>
             </ul>
@@ -191,11 +207,37 @@
                 </div>
             </div>
 
-            <!-- 导出按钮 -->
+            <!-- 导出按鈕 -->
             <div class="mt-3">
                 <button class="btn btn-success" onclick="exportRecords()">
                     <i class="bi bi-file-earmark-excel"></i> 导出所有记录
                 </button>
+            </div>
+            
+            <!-- 字段变更历史 -->
+            <div class="tab-pane fade" id="changelog" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6><i class="bi bi-clock-history"></i> 字段变更历史</h6>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="loadFieldChanges()">
+                        <i class="bi bi-arrow-clockwise"></i> 刷新
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:150px">变更时间</th>
+                                <th style="width:80px">操作人</th>
+                                <th style="width:100px">字段</th>
+                                <th>原内容</th>
+                                <th>新内容</th>
+                            </tr>
+                        </thead>
+                        <tbody id="changelogTableBody">
+                            <tr><td colspan="5" class="text-center text-muted">点击标签页加载...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -491,24 +533,24 @@
         const html = `
             <div class="row" style="font-size: 1.05rem;">
                 <div class="col-md-6">
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">备件名称：</strong><span style="color: #334155; font-weight: 500;">${part.name}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">资产编号：</strong><span style="color: #334155; font-weight: 500;">${part.asset_number}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">设备类型：</strong><span style="color: #334155; font-weight: 500;">${part.device_type || '-'}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">规格型号：</strong><span style="color: #334155; font-weight: 500;">${part.specifications || '-'}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">生产厂家：</strong><span style="color: #334155; font-weight: 500;">${part.manufacturer || '-'}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">出厂编号：</strong><span style="color: #334155; font-weight: 500;">${part.product_number || '-'}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">系统：</strong><span style="color: #334155; font-weight: 500;">${part.ownership || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-box-seam text-muted me-1"></i>备件名称：</strong><span style="color: #334155; font-weight: 500;">${part.name}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-upc-scan text-muted me-1"></i>资产编号：</strong><span style="color: #334155; font-weight: 500;">${part.asset_number}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-hdd-rack text-muted me-1"></i>设备类型：</strong><span style="color: #334155; font-weight: 500;">${part.device_type || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-rulers text-muted me-1"></i>规格型号：</strong><span style="color: #334155; font-weight: 500;">${part.specifications || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-buildings text-muted me-1"></i>生产厂家：</strong><span style="color: #334155; font-weight: 500;">${part.manufacturer || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-upc text-muted me-1"></i>出厂编号：</strong><span style="color: #334155; font-weight: 500;">${part.product_number || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-layers text-muted me-1"></i>系统：</strong><span style="color: #334155; font-weight: 500;">${part.ownership || '-'}</span></p>
                 </div>
                 <div class="col-md-6">
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">使用状态：</strong><span class="badge badge-status status-${part.usage_status}">${part.usage_status}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">存放地点：</strong><span style="color: #334155; font-weight: 500;">${part.storage_location || '-'}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">上次检定日期：</strong><span style="color: #334155; font-weight: 500;">${part.last_inspection_date || '-'}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">下次检定日期：</strong><span style="color: #334155; font-weight: 500;">${part.next_inspection_date || '-'}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">采购日期：</strong><span style="color: #334155; font-weight: 500;">${part.purchase_date || '-'}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">质保期：</strong><span style="color: #334155; font-weight: 500;">${part.warranty_period ? part.warranty_period + ' 月' : '-'}</span></p>
-                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">单价：</strong><span style="color: #334155; font-weight: 500;">${part.unit_price ? '¥' + part.unit_price : '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-tag text-muted me-1"></i>使用状态：</strong><span class="badge badge-status status-${part.usage_status}">${part.usage_status}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-geo-alt text-muted me-1"></i>存放地点：</strong><span style="color: #334155; font-weight: 500;">${part.storage_location || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-calendar-check text-muted me-1"></i>上次检定日期：</strong><span style="color: #334155; font-weight: 500;">${part.last_inspection_date || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-calendar-event text-muted me-1"></i>下次检定日期：</strong><span style="color: #334155; font-weight: 500;">${part.next_inspection_date || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-cart-check text-muted me-1"></i>采购日期：</strong><span style="color: #334155; font-weight: 500;">${part.purchase_date || '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-shield-check text-muted me-1"></i>质保期：</strong><span style="color: #334155; font-weight: 500;">${part.warranty_period ? part.warranty_period + ' 月' : '-'}</span></p>
+                    <p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-currency-yen text-muted me-1"></i>单价：</strong><span style="color: #334155; font-weight: 500;">${part.unit_price ? '¥' + part.unit_price : '-'}</span></p>
                 </div>
-                ${part.remarks ? `<div class="col-md-12"><p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;">备注：</strong><span style="color: #334155; font-weight: 500;">${part.remarks}</span></p></div>` : ''}
+                ${part.remarks ? `<div class="col-md-12"><p style="margin-bottom: 1rem;"><strong style="color: #1e293b; font-weight: 700;"><i class="bi bi-chat-left-text text-muted me-1"></i>备注：</strong><span style="color: #334155; font-weight: 500;">${part.remarks}</span></p></div>` : ''}
             </div>
         `;
         $('#sparePartInfo').html(html);
@@ -785,7 +827,7 @@
                     <td>${record.next_inspection_date || '-'}</td>
                     <td>${record.maintenance_cost ? '￥' + record.maintenance_cost : '-'}</td>
                     <td>
-                        <div class="btn-group btn-group-sm" role="group">
+                        <div class="btn-group btn-group-sm row-actions" role="group">
                             <button class="btn btn-outline-primary" onclick="editMaintenanceRecord(${record.id})" title="编辑">
                                 <i class="bi bi-pencil"></i>
                             </button>
@@ -941,19 +983,6 @@
         window.location.href = `/api/export/records?spare_part_id=${partId}`;
     }
 
-    function showAlert(message, type) {
-        const alert = $(`
-            <div class="alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" role="alert" style="z-index: 9999; min-width: 300px;">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `);
-        $('body').append(alert);
-        setTimeout(function() {
-            alert.alert('close');
-        }, 3000);
-    }
-
     // 加载文件夹信息
     function loadFolderInfo() {
         $.ajax({
@@ -1072,6 +1101,39 @@
             },
             error: function() {
                 showAlert('网络错误，请稍后重试', 'danger');
+            }
+        });
+    }
+
+    // 字段变更历史
+    let fieldChangesLoaded = false;
+    function loadFieldChanges() {
+        if (fieldChangesLoaded) return;
+        fieldChangesLoaded = true;
+        $.ajax({
+            url: `/api/audit/field-changes/${partId}`,
+            method: 'GET',
+            success: function(response) {
+                const tbody = $('#changelogTableBody');
+                tbody.empty();
+                if (!response.success || response.data.length === 0) {
+                    tbody.append('<tr><td colspan="5" class="text-center empty-state"><i class="bi bi-inbox"></i><p>暂无变更记录</p></td></tr>');
+                    return;
+                }
+                response.data.forEach(function(c) {
+                    tbody.append(`
+                        <tr>
+                            <td><small class="text-muted">${c.changed_at || '-'}</small></td>
+                            <td><span class="badge bg-secondary">${c.operator || '-'}</span></td>
+                            <td><strong>${c.field_label || c.field_name}</strong></td>
+                            <td class="text-danger" style="max-width:200px;word-break:break-all;">${c.old_value || '<span class="text-muted">为空</span>'}</td>
+                            <td class="text-success" style="max-width:200px;word-break:break-all;">${c.new_value || '<span class="text-muted">为空</span>'}</td>
+                        </tr>
+                    `);
+                });
+            },
+            error: function() {
+                $('#changelogTableBody').html('<tr><td colspan="5" class="text-center text-danger">加载失败</td></tr>');
             }
         });
     }

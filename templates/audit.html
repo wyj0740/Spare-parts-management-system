@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}操作日志 - 备品备件管理系统{% endblock %}
+
+{% block breadcrumb %}
+<nav class="breadcrumb-nav">
+    <a href="/"><i class="bi bi-house-door"></i> 首页</a>
+    <i class="bi bi-chevron-right"></i>
+    <span class="active">操作日志</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title">操作日志</h1>
+        <div class="page-subtitle">记录所有增删改操作，可追溯历史变更</div>
+    </div>
+</div>
+
+<!-- 筛选 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label"><i class="bi bi-search"></i> 搜索</label>
+                <input type="text" class="form-control form-control-sm" id="auditKeyword" placeholder="备件名称 / 操作人">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label"><i class="bi bi-funnel"></i> 操作类型</label>
+                <select class="form-select form-select-sm" id="auditAction">
+                    <option value="">全部</option>
+                    <option value="CREATE">新建</option>
+                    <option value="UPDATE">修改</option>
+                    <option value="DELETE">删除</option>
+                    <option value="IMPORT">批量导入</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label"><i class="bi bi-clock"></i> 时间范围</label>
+                <select class="form-select form-select-sm" id="auditDays">
+                    <option value="7">最近 7 天</option>
+                    <option value="30" selected>最近 30 天</option>
+                    <option value="90">最近 90 天</option>
+                    <option value="0">全部</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary btn-sm" onclick="loadAuditLogs()">
+                    <i class="bi bi-search"></i> 查询
+                </button>
+                <button class="btn btn-outline-secondary btn-sm ms-1" onclick="resetAuditFilters()">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 日志列表 -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-journal-text"></i> 操作记录</span>
+        <span class="badge bg-primary" id="auditTotalBadge">共 0 条</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:5%;">ID</th>
+                        <th style="width:12%;">操作时间</th>
+                        <th style="width:8%;">操作人</th>
+                        <th style="width:8%;">操作类型</th>
+                        <th style="width:20%;">备件名称</th>
+                        <th>详情</th>
+                    </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                    <tr><td colspan="6" class="text-center py-4 text-muted">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- 分页 -->
+    <div class="card-footer d-flex justify-content-between align-items-center">
+        <small class="text-muted">共 <span id="auditTotal">0</span> 条，每页 50 条</small>
+        <div id="auditPagination" class="d-flex gap-1"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let auditCurrentPage = 1;
+const auditPerPage = 50;
+
+const actionLabels = { CREATE: '新建', UPDATE: '修改', DELETE: '删除', IMPORT: '批量导入' };
+const actionColors = { CREATE: 'success', UPDATE: 'primary', DELETE: 'danger', IMPORT: 'info' };
+
+$(document).ready(function() {
+    loadAuditLogs();
+    $('#auditKeyword').keypress(function(e) { if (e.which === 13) loadAuditLogs(); });
+});
+
+function resetAuditFilters() {
+    $('#auditKeyword').val('');
+    $('#auditAction').val('');
+    $('#auditDays').val('30');
+    auditCurrentPage = 1;
+    loadAuditLogs();
+}
+
+function loadAuditLogs(page) {
+    if (page) auditCurrentPage = page;
+    showProgress();
+    $.ajax({
+        url: '/api/audit/logs',
+        method: 'GET',
+        data: {
+            page: auditCurrentPage,
+            per_page: auditPerPage,
+            keyword: $('#auditKeyword').val(),
+            action: $('#auditAction').val(),
+            days: $('#auditDays').val()
+        },
+        success: function(response) {
+            hideProgress();
+            if (response.success) {
+                renderAuditLogs(response.data);
+            } else {
+                showAlert('加载失败：' + response.message, 'danger');
+            }
+        },
+        error: function() { hideProgress(); showAlert('网络错误', 'danger'); }
+    });
+}
+
+function renderAuditLogs(data) {
+    const tbody = $('#auditTableBody');
+    tbody.empty();
+    $('#auditTotal').text(data.total);
+    $('#auditTotalBadge').text('共 ' + data.total + ' 条');
+
+    if (data.logs.length === 0) {
+        tbody.append('<tr><td colspan="6" class="text-center empty-state"><i class="bi bi-inbox"></i><p>暂无日志记录</p></td></tr>');
+        renderAuditPagination(data.total);
+        return;
+    }
+
+    data.logs.forEach(function(log) {
+        const actionLabel = actionLabels[log.action] || log.action;
+        const actionColor = actionColors[log.action] || 'secondary';
+        let detail = '';
+        if (log.detail) {
+            try {
+                const d = JSON.parse(log.detail);
+                detail = Object.entries(d).map(([k, v]) => `<small class="text-muted">${k}: ${v}</small>`).join(' · ');
+            } catch(e) {
+                detail = `<small class="text-muted">${log.detail}</small>`;
+            }
+        }
+        tbody.append(`
+            <tr>
+                <td class="text-muted" style="font-size:0.8rem;">${log.id}</td>
+                <td><small>${log.created_at || '-'}</small></td>
+                <td><span class="badge bg-secondary">${log.operator || '-'}</span></td>
+                <td><span class="badge bg-${actionColor}">${actionLabel}</span></td>
+                <td>
+                    ${log.target_name || '-'}
+                    ${log.target_id ? `<a href="/detail/${log.target_id}" class="ms-1 text-muted" style="font-size:0.75rem;" title="查看详情"><i class="bi bi-box-arrow-up-right"></i></a>` : ''}
+                </td>
+                <td>${detail || '<span class="text-muted">-</span>'}</td>
+            </tr>
+        `);
+    });
+    renderAuditPagination(data.total);
+}
+
+function renderAuditPagination(total) {
+    const totalPages = Math.ceil(total / auditPerPage);
+    const container = $('#auditPagination');
+    container.empty();
+    if (totalPages <= 1) return;
+
+    const maxShow = 7;
+    let pages = [];
+    if (totalPages <= maxShow) {
+        for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+        pages = [1];
+        if (auditCurrentPage > 3) pages.push('...');
+        for (let i = Math.max(2, auditCurrentPage-1); i <= Math.min(totalPages-1, auditCurrentPage+1); i++) pages.push(i);
+        if (auditCurrentPage < totalPages - 2) pages.push('...');
+        pages.push(totalPages);
+    }
+
+    pages.forEach(function(p) {
+        if (p === '...') {
+            container.append('<span class="px-2 text-muted">...</span>');
+        } else {
+            const active = p === auditCurrentPage ? 'btn-primary' : 'btn-outline-secondary';
+            container.append(`<button class="btn btn-sm ${active}" onclick="loadAuditLogs(${p})">${p}</button>`);
+        }
+    });
+}
+</script>
+{% endblock %}

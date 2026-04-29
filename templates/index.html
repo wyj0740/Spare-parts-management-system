@@ -2,15 +2,77 @@
 
 {% block title %}备件列表 - 备品备件管理系统{% endblock %}
 
+{% block breadcrumb %}
+<nav class="breadcrumb-nav">
+    <a href="/"><i class="bi bi-house-door"></i> 首页</a>
+    <i class="bi bi-chevron-right"></i>
+    <span class="active">备件列表</span>
+</nav>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
-    <!-- 搜索和筛选区域 -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-funnel"></i> 搜索与筛选</h5>
+<!-- 到期提醒 Banner -->
+<div id="inspectionBanner" style="display:none;" class="inspection-banner">
+    <div class="banner-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+    <div class="banner-text" id="bannerText"></div>
+    <span class="banner-link" onclick="showPendingInspection()">查看详情</span>
+    <button class="banner-close" onclick="$('#inspectionBanner').fadeOut(300)" title="关闭">&times;</button>
+</div>
+
+<!-- 页面标题 -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title">备件列表</h1>
+        <div class="page-subtitle">管理和查询所有备品备件信息</div>
+    </div>
+    <a href="/create" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> 创建备件
+    </a>
+</div>
+
+<!-- 统计概览 -->
+<div class="stat-row">
+    <div class="stat-card primary animate-fade-in-up stagger-1">
+        <div class="stat-icon primary"><i class="bi bi-box-seam"></i></div>
+        <div>
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-label">总备件数</div>
         </div>
-        <div class="card-body">
-            <div class="row g-3">
+    </div>
+    <div class="stat-card success animate-fade-in-up stagger-2">
+        <div class="stat-icon success"><i class="bi bi-check-circle"></i></div>
+        <div>
+            <div class="stat-value" id="statInStock">0</div>
+            <div class="stat-label">在库数量</div>
+        </div>
+    </div>
+    <div class="stat-card warning animate-fade-in-up stagger-3">
+        <div class="stat-icon warning"><i class="bi bi-clock-history"></i></div>
+        <div>
+            <div class="stat-value" id="statPending">0</div>
+            <div class="stat-label">待检定数</div>
+        </div>
+    </div>
+    <div class="stat-card danger animate-fade-in-up stagger-4">
+        <div class="stat-icon danger"><i class="bi bi-calendar-plus"></i></div>
+        <div>
+            <div class="stat-value" id="statNewThisMonth">0</div>
+            <div class="stat-label">本月新增</div>
+        </div>
+    </div>
+</div>
+
+<!-- 搜索筛选 -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-funnel"></i> 搜索与筛选</span>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#searchCollapseArea" id="searchToggleBtn">
+            <i class="bi bi-chevron-down"></i> 展开
+        </button>
+    </div>
+    <div class="collapse" id="searchCollapseArea">
+        <div class="card-body border-bottom" style="border-color: var(--border-light) !important;">
+            <div class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label"><i class="bi bi-search"></i> 关键字搜索</label>
                     <input type="text" class="form-control" id="keyword" placeholder="名称/资产编号/地点">
@@ -50,91 +112,80 @@
                     <input type="text" class="form-control" id="storageLocation" placeholder="输入地点">
                 </div>
                 <div class="col-md-1">
-                    <label class="form-label">&nbsp;</label>
                     <div class="d-grid">
                         <button class="btn btn-primary" onclick="searchSpareParts()">
-                            <i class="bi bi-search"></i> 搜索
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="row mt-3">
-                <div class="col-md-12">
-                    <div class="btn-group" role="group">
-                        <button class="btn btn-success" onclick="exportSpareParts()">
-                            <i class="bi bi-file-earmark-excel"></i> 导出Excel
-                        </button>
-                        <button class="btn btn-secondary" onclick="window.location.href='/historical-documents'" title="历史文件管理">
-                            <i class="bi bi-archive"></i> 历史文件
-                        </button>
-                        <button class="btn btn-success" onclick="exportCalibrationPlan()">
-                            <i class="bi bi-file-earmark-spreadsheet"></i> 制作计量工作计划
-                        </button>
-                        <button class="btn btn-success" onclick="exportInstrumentDetails()">
-                            <i class="bi bi-file-earmark-text"></i> 计量器具明细表
-                        </button>
-                        <button class="btn btn-warning text-white" onclick="showPendingInspection()">
-                            <i class="bi bi-clock-history"></i> 待检定备件
-                        </button>
-                        <button class="btn btn-info text-white" onclick="resetFilters()">
-                            <i class="bi bi-arrow-clockwise"></i> 重置
-                        </button>
-                    </div>
-                    <div class="btn-group ms-2" role="group">
-                        <button class="btn btn-outline-primary" onclick="openFilesRoot()" title="打开文件管理根目录">
-                            <i class="bi bi-folder2"></i> 文件根目录
-                        </button>
-                        <button class="btn btn-outline-success" onclick="batchInitFolders()" title="为所有备件创建文件夹">
-                            <i class="bi bi-folder-plus"></i> 初始化文件夹
+                            <i class="bi bi-search"></i>
                         </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- 备件列表 -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="bi bi-list-check"></i> 备件列表</h5>
-            <span class="badge" style="font-size: 1rem; padding: 0.5rem 1rem; border: 2px solid #3b82f6; background: #1e40af; color: #ffffff;">
-                <i class="bi bi-box-seam"></i> 总计：<span id="totalCount" style="font-weight: bold; color: #93c5fd;">0</span> 件
-            </span>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th style="width: 4%;">ID</th>
-                            <th style="width: 10%;">名称</th>
-                            <th style="width: 8%;">系统</th>
-                            <th style="width: 8%;">存放地点</th>
-                            <th style="width: 8%;">规格型号</th>
-                            <th style="width: 8%;">出厂编号</th>
-                            <th style="width: 13%;">倒计时状态条</th>
-                            <th style="width: 7%;">使用状态</th>
-                            <th style="width: 5%;">文件</th>
-                            <th style="width: 12%;">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="sparePartsTableBody">
-                        <tr>
-                    <td colspan="10" class="text-center" style="padding: 3rem; color: #cbd5e1;">
-                        <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: #3b82f6;">
-                            <span class="visually-hidden">加载中...</span>
-                        </div>
-                        <p class="mt-3" style="color: #94a3b8;">正在加载数据...</p>
-                    </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+    <div class="card-body">
+        <div class="toolbar">
+            <button class="btn btn-success" onclick="exportSpareParts()">
+                <i class="bi bi-file-earmark-excel"></i> 导出Excel
+            </button>
+            <button class="btn btn-outline-primary" onclick="showImportModal()">
+                <i class="bi bi-cloud-upload"></i> 批量导入
+            </button>
+            <button class="btn btn-outline-secondary" onclick="exportCalibrationPlan()">
+                <i class="bi bi-file-earmark-spreadsheet"></i> 计量工作计划
+            </button>
+            <button class="btn btn-outline-secondary" onclick="exportInstrumentDetails()">
+                <i class="bi bi-file-earmark-text"></i> 计量器具明细表
+            </button>
+            <button class="btn btn-warning text-white" onclick="showPendingInspection()">
+                <i class="bi bi-clock-history"></i> 待检定备件
+            </button>
+            <button class="btn btn-outline-secondary" onclick="resetFilters()">
+                <i class="bi bi-arrow-clockwise"></i> 重置
+            </button>
+            <button class="btn btn-outline-secondary" onclick="openFilesRoot()">
+                <i class="bi bi-folder2"></i> 文件根目录
+            </button>
+            <button class="btn btn-outline-secondary" onclick="batchInitFolders()">
+                <i class="bi bi-folder-plus"></i> 初始化文件夹
+            </button>
         </div>
     </div>
 </div>
 
-<!-- 编辑备件模态框 -->
+<!-- 备件列表 -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-check"></i> 备件列表</span>
+        <span class="badge bg-primary"><i class="bi bi-box-seam"></i> 总计：<span id="totalCount">0</span> 件</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 4%;">ID</th>
+                        <th style="width: 11%;" class="sortable" data-sort="name" onclick="handleSort('name')">名称 <i class="bi bi-chevron-expand sort-icon"></i></th>
+                        <th style="width: 8%;" class="sortable" data-sort="ownership" onclick="handleSort('ownership')">系统 <i class="bi bi-chevron-expand sort-icon"></i></th>
+                        <th style="width: 8%;" class="sortable" data-sort="storage_location" onclick="handleSort('storage_location')">存放地点 <i class="bi bi-chevron-expand sort-icon"></i></th>
+                        <th style="width: 9%;" class="sortable" data-sort="specifications" onclick="handleSort('specifications')">规格型号 <i class="bi bi-chevron-expand sort-icon"></i></th>
+                        <th style="width: 8%;" class="sortable" data-sort="product_number" onclick="handleSort('product_number')">出厂编号 <i class="bi bi-chevron-expand sort-icon"></i></th>
+                        <th style="width: 14%;">倒计时状态条</th>
+                        <th style="width: 7%;" class="sortable" data-sort="usage_status" onclick="handleSort('usage_status')">使用状态 <i class="bi bi-chevron-expand sort-icon"></i></th>
+                        <th style="width: 5%;">文件</th>
+                        <th style="width: 13%;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="sparePartsTableBody">
+                    <tr class="skeleton-row"><td><div class="skeleton skeleton-text" style="width:30px"></div></td><td><div class="skeleton skeleton-text" style="width:80%"></div></td><td><div class="skeleton skeleton-text" style="width:60%"></div></td><td><div class="skeleton skeleton-text" style="width:70%"></div></td><td><div class="skeleton skeleton-text" style="width:50%"></div></td><td><div class="skeleton skeleton-text" style="width:60%"></div></td><td><div class="skeleton skeleton-text" style="width:90%"></div></td><td><div class="skeleton skeleton-text" style="width:50%"></div></td><td><div class="skeleton skeleton-text" style="width:40px"></div></td><td><div class="skeleton skeleton-text" style="width:80%"></div></td></tr>
+                    <tr class="skeleton-row"><td><div class="skeleton skeleton-text" style="width:30px"></div></td><td><div class="skeleton skeleton-text" style="width:70%"></div></td><td><div class="skeleton skeleton-text" style="width:50%"></div></td><td><div class="skeleton skeleton-text" style="width:60%"></div></td><td><div class="skeleton skeleton-text" style="width:80%"></div></td><td><div class="skeleton skeleton-text" style="width:50%"></div></td><td><div class="skeleton skeleton-text" style="width:80%"></div></td><td><div class="skeleton skeleton-text" style="width:60%"></div></td><td><div class="skeleton skeleton-text" style="width:40px"></div></td><td><div class="skeleton skeleton-text" style="width:80%"></div></td></tr>
+                    <tr class="skeleton-row"><td><div class="skeleton skeleton-text" style="width:30px"></div></td><td><div class="skeleton skeleton-text" style="width:85%"></div></td><td><div class="skeleton skeleton-text" style="width:70%"></div></td><td><div class="skeleton skeleton-text" style="width:50%"></div></td><td><div class="skeleton skeleton-text" style="width:60%"></div></td><td><div class="skeleton skeleton-text" style="width:70%"></div></td><td><div class="skeleton skeleton-text" style="width:85%"></div></td><td><div class="skeleton skeleton-text" style="width:50%"></div></td><td><div class="skeleton skeleton-text" style="width:40px"></div></td><td><div class="skeleton skeleton-text" style="width:80%"></div></td></tr>
+                    <tr class="skeleton-row"><td><div class="skeleton skeleton-text" style="width:30px"></div></td><td><div class="skeleton skeleton-text" style="width:60%"></div></td><td><div class="skeleton skeleton-text" style="width:80%"></div></td><td><div class="skeleton skeleton-text" style="width:60%"></div></td><td><div class="skeleton skeleton-text" style="width:50%"></div></td><td><div class="skeleton skeleton-text" style="width:80%"></div></td><td><div class="skeleton skeleton-text" style="width:70%"></div></td><td><div class="skeleton skeleton-text" style="width:60%"></div></td><td><div class="skeleton skeleton-text" style="width:40px"></div></td><td><div class="skeleton skeleton-text" style="width:80%"></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑模态框 -->
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -145,13 +196,7 @@
             <div class="modal-body">
                 <form id="editForm">
                     <input type="hidden" id="edit_part_id">
-                    
-                    <!-- 基本信息 -->
-                    <div class="mb-4">
-                        <h6 class="text-white p-2 rounded" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                            <i class="bi bi-info-circle"></i> 基本信息
-                        </h6>
-                    </div>
+                    <div class="section-header"><i class="bi bi-info-circle"></i> 基本信息</div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">备件名称 <span class="text-danger">*</span></label>
@@ -194,17 +239,10 @@
                         <div class="col-md-12 mb-3">
                             <label class="form-label">存放地点</label>
                             <input type="text" class="form-control" id="edit_storage_location" list="editStorageLocationList" placeholder="选择或输入存放地点">
-                            <datalist id="editStorageLocationList">
-                            </datalist>
+                            <datalist id="editStorageLocationList"></datalist>
                         </div>
                     </div>
-                    
-                    <!-- 日期和财务信息 -->
-                    <div class="mb-4 mt-4">
-                        <h6 class="text-white p-2 rounded" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                            <i class="bi bi-calendar-check"></i> 日期和财务信息
-                        </h6>
-                    </div>
+                    <div class="section-header"><i class="bi bi-calendar-check"></i> 日期和财务信息</div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">采购日期</label>
@@ -227,13 +265,7 @@
                             <input type="number" class="form-control" id="edit_unit_price" step="0.01" min="0">
                         </div>
                     </div>
-                    
-                    <!-- 备注 -->
-                    <div class="mb-4 mt-4">
-                        <h6 class="text-white p-2 rounded" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                            <i class="bi bi-chat-left-text"></i> 备注信息
-                        </h6>
-                    </div>
+                    <div class="section-header"><i class="bi bi-chat-left-text"></i> 备注信息</div>
                     <div class="row">
                         <div class="col-md-12 mb-3">
                             <label class="form-label">备注</label>
@@ -254,7 +286,7 @@
 <div class="modal fade" id="pendingInspectionModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white;">
                 <h5 class="modal-title"><i class="bi bi-clock-history"></i> 待检定备件列表</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -263,22 +295,128 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>名称</th>
-                                <th>归属</th>
-                                <th>产品编号</th>
-                                <th>下次检定日期</th>
-                                <th>距离检定</th>
-                                <th>使用状态</th>
-                                <th>存放地点</th>
-                                <th>操作</th>
+                                <th>ID</th><th>名称</th><th>归属</th><th>产品编号</th>
+                                <th>下次检定日期</th><th>距离检定</th><th>使用状态</th><th>存放地点</th><th>操作</th>
                             </tr>
                         </thead>
                         <tbody id="pendingInspectionTableBody">
-                            <tr><td colspan="9" class="text-center text-muted" style="padding: 2rem;">加载中...</td></tr>
+                            <tr><td colspan="9" class="text-center empty-state">加载中...</td></tr>
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 批量导入模态框 -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-cloud-upload"></i> 批量导入备件</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 步骤进度条 -->
+                <div class="d-flex align-items-center gap-2 mb-3" id="importStepBar">
+                    <div class="import-step-item active" id="step1Indicator">
+                        <span class="badge bg-primary me-1">1</span><span>选择文件</span>
+                    </div>
+                    <i class="bi bi-chevron-right text-muted"></i>
+                    <div class="import-step-item text-muted" id="step2Indicator">
+                        <span class="badge bg-secondary me-1">2</span><span>预览确认</span>
+                    </div>
+                    <i class="bi bi-chevron-right text-muted"></i>
+                    <div class="import-step-item text-muted" id="step3Indicator">
+                        <span class="badge bg-secondary me-1">3</span><span>导入完成</span>
+                    </div>
+                </div>
+
+                <!-- 步骤1: 选择文件 -->
+                <div id="importStep1">
+                    <div class="mb-3">
+                        <a href="/api/spare-parts/import-template" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-download"></i> 下载导入模板
+                        </a>
+                        <small class="text-muted ms-2">支持 .xlsx / .xls 格式</small>
+                    </div>
+                    <div class="file-upload-zone" id="fileUploadZone">
+                        <input type="file" id="importFileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleImportFile(this.files[0])">
+                        <div class="file-upload-content" onclick="document.getElementById('importFileInput').click()">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                            <p class="mt-2 mb-1">点击或拖拽文件到此处上传</p>
+                            <small class="text-muted">支持 Excel 文件，最大 10MB</small>
+                        </div>
+                    </div>
+                    <div id="importParsingStatus" class="mt-2" style="display:none;">
+                        <div class="d-flex align-items-center gap-2 text-primary">
+                            <div class="spinner-border spinner-border-sm"></div>
+                            <span>正在解析文件...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 步骤2: 预览确认 -->
+                <div id="importStep2" style="display:none;">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-success fs-6" id="previewValidCount"></span>
+                            <span class="badge bg-danger fs-6" id="previewInvalidCount"></span>
+                            <span class="text-muted small">共 <span id="previewTotalCount">0</span> 条记录，错误行不会导入</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="resetImportModal()">
+                            <i class="bi bi-arrow-left"></i> 重新选文件
+                        </button>
+                    </div>
+                    <div class="table-responsive" style="max-height: 380px;">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th style="width:50px">行号</th>
+                                    <th>状态</th>
+                                    <th>名称</th>
+                                    <th>资产编号</th>
+                                    <th>系统</th>
+                                    <th>设备类型</th>
+                                    <th>使用状态</th>
+                                    <th>下次检定日期</th>
+                                    <th>失败原因</th>
+                                </tr>
+                            </thead>
+                            <tbody id="importPreviewTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 步骤3: 导入结果 -->
+                <div id="importStep3" style="display:none;">
+                    <div class="d-flex gap-3 mb-3">
+                        <div class="alert alert-success flex-fill mb-0 py-2">
+                            <i class="bi bi-check-circle"></i> 成功 <strong id="importSuccessCount">0</strong> 条
+                        </div>
+                        <div class="alert alert-danger flex-fill mb-0 py-2">
+                            <i class="bi bi-x-circle"></i> 失败 <strong id="importFailedCount">0</strong> 条
+                        </div>
+                    </div>
+                    <div id="importFailedDetails" style="display:none;">
+                        <h6 class="text-danger mb-2"><i class="bi bi-exclamation-triangle"></i> 失败详情</h6>
+                        <div class="table-responsive" style="max-height: 200px;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead>
+                                    <tr><th>Excel行号</th><th>失败原因</th></tr>
+                                </thead>
+                                <tbody id="importFailedTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" id="importModalFooter">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="importConfirmBtn" style="display:none;" onclick="confirmImport()">
+                    <i class="bi bi-check-circle"></i> 确认导入 (<span id="importConfirmCount">0</span> 条)
+                </button>
             </div>
         </div>
     </div>
@@ -288,21 +426,17 @@
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); color: white;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #f87171, #ef4444); color: white;">
                 <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> 确认删除</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" style="padding: 2rem;">
-                <div class="text-center mb-3">
-                    <i class="bi bi-trash3" style="font-size: 3rem; color: #ef4444;"></i>
-                </div>
-                <p class="text-center" style="font-size: 1.1rem; color: #f1f5f9;">
-                    确定要删除这个备件吗？<br>
-                    <small class="text-danger" style="color: #fca5a5 !important;">此操作不可恢复，所有相关记录也会被删除。</small>
-                </p>
-                <div class="form-check mt-3" style="border: 1px solid #ef4444; border-radius: 8px; padding: 1rem; background: rgba(239, 68, 68, 0.1);">
+            <div class="modal-body text-center" style="padding: 2rem;">
+                <i class="bi bi-trash3" style="font-size: 2.5rem; color: var(--danger);"></i>
+                <p class="mt-3 mb-1" style="font-size: 1.05rem; color: var(--text-primary);">确定要删除这个备件吗？</p>
+                <small class="text-danger">此操作不可恢复，所有相关记录也会被删除。</small>
+                <div class="form-check mt-3 mx-auto" style="max-width: 280px; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 1rem; background: var(--danger-bg);">
                     <input class="form-check-input" type="checkbox" id="deleteFolderCheck">
-                    <label class="form-check-label" for="deleteFolderCheck" style="color: #fca5a5;">
+                    <label class="form-check-label" for="deleteFolderCheck" style="color: var(--danger); font-size: 0.85rem;">
                         <i class="bi bi-folder-x"></i> 同时删除关联的文件夹及其所有文件
                     </label>
                 </div>
@@ -318,536 +452,654 @@
 
 {% block extra_js %}
 <script>
-    let deletePartId = null;
-    let folderStatus = {};  // 存储文件夹状态
-    let fieldOptions = {};  // 存储字段选项
+let deletePartId = null;
+let folderStatus = {};
+let fieldOptions = {};
+let currentParts = [];
+let sortState = { column: null, direction: 'asc' };
 
-    // 页面加载时获取备件列表
-    $(document).ready(function() {
-        loadSpareParts();
-        loadFolderStatus();  // 加载文件夹状态
-        loadFieldOptions();  // 加载字段选项
+$(document).ready(function() {
+    // 解析URL参数并填充筛选表单
+    const params = new URLSearchParams(window.location.search);
+    $('#keyword').val(params.get('keyword') || '');
+    $('#ownership').val(params.get('ownership') || '');
+    $('#usageStatus').val(params.get('usage_status') || '');
+    $('#inspectionStatus').val(params.get('inspection_status') || '');
+    $('#storageLocation').val(params.get('storage_location') || '');
+    if (window.location.search) {
+        $('#searchCollapseArea').collapse('show');
+    }
+
+    loadSpareParts();
+    loadStats();
+    loadFolderStatus();
+    loadFieldOptions();
+    loadInspectionBanner();
+
+    $('#searchCollapseArea').on('shown.bs.collapse', function () {
+        $('#searchToggleBtn').html('<i class="bi bi-chevron-up"></i> 收起');
+    }).on('hidden.bs.collapse', function () {
+        $('#searchToggleBtn').html('<i class="bi bi-chevron-down"></i> 展开');
     });
 
-    // 加载字段选项
-    function loadFieldOptions() {
-        $.ajax({
-            url: '/api/spare-parts/options',
-            method: 'GET',
-            success: function(response) {
-                if (response.success) {
-                    fieldOptions = response.data;
-                    updateFieldOptionsDisplay();
-                }
+    // 首页专属键盘快捷键
+    $(document).keydown(function(e) {
+        const tag = e.target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        if (e.key === '/') {
+            e.preventDefault();
+            $('#searchCollapseArea').collapse('show');
+            setTimeout(function() { $('#keyword').focus(); }, 300);
+        }
+        if (e.ctrlKey && (e.key === 'k' || e.key === 'K')) {
+            e.preventDefault();
+            $('#searchCollapseArea').collapse('show');
+            setTimeout(function() { $('#keyword').focus().select(); }, 300);
+        }
+    });
+});
+
+function loadFieldOptions() {
+    $.ajax({
+        url: '/api/spare-parts/options', method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                fieldOptions = response.data;
+                updateFieldOptionsDisplay();
             }
-        });
-    }
+        }
+    });
+}
 
-    // 更新字段选项下拉列表
-    function updateFieldOptionsDisplay() {
-        // 更新编辑模态框中的系统选项
-        const ownershipList = $('#editOwnershipList');
-        const defaultOwnerships = ['自观系统', '信息系统', '观测场'];
-        const allOwnerships = [...new Set([...defaultOwnerships, ...(fieldOptions.ownerships || [])])];
-        ownershipList.empty();
-        allOwnerships.forEach(function(item) {
-            ownershipList.append(`<option value="${item}">`);
-        });
-        
-        // 更新编辑模态框中的存放地点选项
-        const locationList = $('#editStorageLocationList');
-        locationList.empty();
-        (fieldOptions.storage_locations || []).forEach(function(item) {
-            locationList.append(`<option value="${item}">`);
-        });
-    }
+function updateFieldOptionsDisplay() {
+    const ownershipList = $('#editOwnershipList');
+    const defaultOwnerships = ['自观系统', '信息系统', '观测场'];
+    const allOwnerships = [...new Set([...defaultOwnerships, ...(fieldOptions.ownerships || [])])];
+    ownershipList.empty();
+    allOwnerships.forEach(function(item) { ownershipList.append(`<option value="${item}">`); });
+    const locationList = $('#editStorageLocationList');
+    locationList.empty();
+    (fieldOptions.storage_locations || []).forEach(function(item) { locationList.append(`<option value="${item}">`); });
+}
 
-    // 加载文件夹状态
-    function loadFolderStatus() {
-        $.ajax({
-            url: '/api/folder/spare-parts/status',
-            method: 'GET',
-            success: function(response) {
-                if (response.success) {
-                    folderStatus = response.data;
-                    // 如果备件已加载，更新显示
-                    updateFolderStatusDisplay();
-                }
+function loadFolderStatus() {
+    $.ajax({
+        url: '/api/folder/spare-parts/status', method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                folderStatus = response.data;
+                updateFolderStatusDisplay();
             }
-        });
-    }
+        }
+    });
+}
 
-    // 更新文件夹状态显示
-    function updateFolderStatusDisplay() {
-        $('.folder-status-cell').each(function() {
-            const partId = $(this).data('part-id');
-            if (folderStatus[partId]) {
-                const status = folderStatus[partId];
-                let html = '';
-                if (status.file_count > 0) {
-                    html = `<span class="badge bg-success" title="最后修改: ${status.last_modified || '未知'}">
-                        <i class="bi bi-folder-check"></i> ${status.file_count}
-                    </span>`;
-                } else {
-                    html = `<span class="badge bg-secondary" title="文件夹为空">
-                        <i class="bi bi-folder"></i> 0
-                    </span>`;
-                }
-                $(this).html(html);
+function updateFolderStatusDisplay() {
+    $('.folder-status-cell').each(function() {
+        const partId = $(this).data('part-id');
+        if (folderStatus[partId]) {
+            const status = folderStatus[partId];
+            if (status.file_count > 0) {
+                $(this).html(`<span class="badge bg-success" title="最后修改: ${status.last_modified || '未知'}"><i class="bi bi-folder-check"></i> ${status.file_count}</span>`);
+            } else {
+                $(this).html(`<span class="badge bg-secondary" title="文件夹为空"><i class="bi bi-folder"></i> 0</span>`);
             }
-        });
-    }
+        }
+    });
+}
 
-    // 加载备件列表
-    function loadSpareParts(filters = {}) {
-        $.ajax({
-            url: '/api/spare-parts',
-            method: 'GET',
-            data: filters,
-            success: function(response) {
-                if (response.success) {
-                    displaySpareParts(response.data);
-                    updateFolderStatusDisplay();  // 更新文件夹状态
-                } else {
-                    showAlert('加载失败：' + response.message, 'danger');
-                }
-            },
-            error: function(xhr) {
-                showAlert('网络错误，请稍后重试', 'danger');
+function calculateStats(parts) {
+    const now = new Date();
+    const thisMonth = now.getMonth();
+    const thisYear = now.getFullYear();
+    return {
+        total: parts.length,
+        inStock: parts.filter(p => p.usage_status === '在库').length,
+        pending: parts.filter(p => p.next_inspection_date && (p.days_to_inspection !== null) && p.days_to_inspection <= 90).length,
+        newThisMonth: parts.filter(p => {
+            if (!p.created_at) return false;
+            const d = new Date(p.created_at);
+            return d.getFullYear() === thisYear && d.getMonth() === thisMonth;
+        }).length
+    };
+}
+
+function renderStats(stats) {
+    $('#statTotal').text(stats.total);
+    $('#statInStock').text(stats.inStock);
+    $('#statPending').text(stats.pending);
+    $('#statNewThisMonth').text(stats.newThisMonth);
+}
+
+function loadStats() {
+    $.ajax({
+        url: '/api/spare-parts/stats', method: 'GET',
+        success: function(response) {
+            if (response.success) { renderStats(response.data); }
+        }
+    });
+}
+
+function loadInspectionBanner() {
+    $.ajax({
+        url: '/api/spare-parts/stats', method: 'GET',
+        success: function(response) {
+            if (!response.success) return;
+            const data = response.data;
+            const expired = data.expired || 0;
+            const urgent = data.pending || 0;
+            let msgs = [];
+            if (expired > 0) msgs.push(`<strong>${expired}</strong> 件已过期`);
+            if (urgent > 0) msgs.push(`<strong>${urgent}</strong> 件 3 个月内到期`);
+            if (msgs.length > 0) {
+                $('#bannerText').html('⚠️ 注意：' + msgs.join('，') + '，请及时安排检定。');
+                $('#inspectionBanner').fadeIn(400);
             }
-        });
+        }
+    });
+}
+
+function applySort(parts) {
+    if (!sortState.column) return parts;
+    const col = sortState.column;
+    const dir = sortState.direction;
+    return [...parts].sort(function(a, b) {
+        const va = (a[col] || '').toString().toLowerCase();
+        const vb = (b[col] || '').toString().toLowerCase();
+        if (va < vb) return dir === 'asc' ? -1 : 1;
+        if (va > vb) return dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+}
+
+function handleSort(column) {
+    if (sortState.column === column) {
+        sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortState.column = column;
+        sortState.direction = 'asc';
+    }
+    // 更新表头样式
+    $('th.sortable').removeClass('asc desc');
+    $('th.sortable .sort-icon').removeClass('bi-chevron-up bi-chevron-down').addClass('bi-chevron-expand');
+    const $th = $(`th[data-sort="${column}"]`);
+    $th.addClass(sortState.direction);
+    $th.find('.sort-icon').removeClass('bi-chevron-expand')
+       .addClass(sortState.direction === 'asc' ? 'bi-chevron-up' : 'bi-chevron-down');
+    displaySpareParts(currentParts);
+}
+
+function loadSpareParts(filters = {}) {
+    showProgress();
+    $.ajax({
+        url: '/api/spare-parts', method: 'GET', data: filters,
+        success: function(response) {
+            if (response.success) {
+                currentParts = response.data;
+                displaySpareParts(response.data);
+                updateFolderStatusDisplay();
+            } else {
+                showAlert('加载失败：' + response.message, 'danger');
+            }
+            hideProgress();
+        },
+        error: function() { showAlert('网络错误，请稍后重试', 'danger'); hideProgress(); }
+    });
+}
+
+function displaySpareParts(parts) {
+    parts = applySort(parts);
+    const tbody = $('#sparePartsTableBody');
+    tbody.empty();
+    $('#totalCount').text(parts.length);
+
+    if (parts.length === 0) {
+        tbody.append(`<tr><td colspan="10" class="text-center empty-state"><i class="bi bi-inbox"></i><p>暂无数据</p></td></tr>`);
+        return;
     }
 
-    // 显示备件列表
-    function displaySpareParts(parts) {
-        const tbody = $('#sparePartsTableBody');
-        tbody.empty();
-
-        $('#totalCount').text(parts.length);
-
-        if (parts.length === 0) {
-            tbody.append(`
-                <tr>
-                    <td colspan="10" class="text-center" style="color: #94a3b8;">
-                        <i class="bi bi-inbox" style="font-size: 2rem; color: #64748b;"></i>
-                        <p>暂无数据</p>
-                    </td>
-                </tr>
-            `);
-            return;
+    parts.forEach(function(part) {
+        let inspectionBar = '';
+        if (part.next_inspection_date) {
+            const daysToInspection = part.days_to_inspection || 0;
+            const monthsToInspection = Math.round(daysToInspection / 30);
+            if (daysToInspection < -5) {
+                inspectionBar = '<span class="text-muted" style="font-size: 12px;"></span>';
+            } else {
+                let progressClass = 'bg-success';
+                if (monthsToInspection <= 4) progressClass = 'bg-danger';
+                else if (monthsToInspection <= 6) progressClass = 'bg-warning';
+                let progress = 0;
+                if (monthsToInspection >= 6) progress = 100;
+                else if (monthsToInspection >= 4) progress = 66;
+                else if (monthsToInspection >= 3) progress = 33;
+                else if (monthsToInspection >= 0) progress = 10;
+                const daysText = daysToInspection >= 0
+                    ? `剩余${daysToInspection}天 (约${monthsToInspection}个月)`
+                    : `已过期${Math.abs(daysToInspection)}天 (约${Math.abs(monthsToInspection)}个月)`;
+                inspectionBar = `
+                    <div style="position: relative; height: 20px;">
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar ${progressClass}" role="progressbar" style="width: ${progress}%;"></div>
+                        </div>
+                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 11px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${daysText}</div>
+                    </div>`;
+            }
+        } else {
+            inspectionBar = '<span class="text-muted" style="font-size: 12px;">无需检定</span>';
         }
 
-        parts.forEach(function(part) {
-            // 检定状态条
-            let inspectionBar = '';
-            if (part.next_inspection_date) {
-                const daysToInspection = part.days_to_inspection || 0;
-                const monthsToInspection = Math.round(daysToInspection / 30);
-                
-                // 如果过期超过5天，显示空白
-                if (daysToInspection < -5) {
-                    inspectionBar = '<span class="text-muted" style="font-size: 14px; color: #94a3b8 !important;"></span>';
+        tbody.append(`
+            <tr>
+                <td><span class="text-muted" style="font-size:0.8rem;font-weight:600;">${part.id}</span></td>
+                <td><strong>${part.name}</strong></td>
+                <td>${part.ownership || '-'}</td>
+                <td>${part.storage_location || '-'}</td>
+                <td>${part.specifications || '-'}</td>
+                <td>${part.product_number || '-'}</td>
+                <td>${inspectionBar}</td>
+                <td><span class="badge-status status-${part.usage_status}">${part.usage_status}</span></td>
+                <td class="folder-status-cell text-center" data-part-id="${part.id}"><span class="text-muted"><i class="bi bi-hourglass"></i></span></td>
+                <td>
+                    <div class="btn-group btn-group-sm row-actions" role="group">
+                        <button class="btn btn-outline-primary" onclick="editPart(${part.id})" title="编辑"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-outline-secondary" onclick="viewDetail(${part.id})" title="查看详情"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-outline-success" onclick="openPartFolder(${part.id})" title="打开文件夹"><i class="bi bi-folder2-open"></i></button>
+                        <button class="btn btn-outline-danger" onclick="deletePart(${part.id})" title="删除"><i class="bi bi-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `);
+    });
+}
+
+function searchSpareParts() {
+    const filters = {
+        keyword: $('#keyword').val(),
+        ownership: $('#ownership').val(),
+        usage_status: $('#usageStatus').val(),
+        inspection_status: $('#inspectionStatus').val(),
+        storage_location: $('#storageLocation').val()
+    };
+    // 同步筛选条件到URL
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(function([k, v]) { if (v) params.set(k, v); });
+    const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.history.pushState({}, '', newUrl);
+    loadSpareParts(filters);
+}
+
+function resetFilters() {
+    $('#keyword, #ownership, #usageStatus, #inspectionStatus, #storageLocation').val('');
+    window.history.pushState({}, '', window.location.pathname);
+    loadSpareParts();
+}
+
+function editPart(partId) {
+    $.ajax({
+        url: `/api/spare-parts/${partId}`, method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                const part = response.data;
+                $('#edit_part_id').val(part.id);
+                $('#edit_name').val(part.name);
+                $('#edit_asset_number').val(part.asset_number);
+                $('#edit_ownership').val(part.ownership || '');
+                $('#edit_product_number').val(part.product_number || '');
+                $('#edit_specifications').val(part.specifications || '');
+                $('#edit_manufacturer').val(part.manufacturer || '');
+                $('#edit_usage_status').val(part.usage_status);
+                $('#edit_storage_location').val(part.storage_location || '');
+                $('#edit_purchase_date').val(part.purchase_date || '');
+                $('#edit_last_inspection_date').val(part.last_inspection_date || '');
+                $('#edit_next_inspection_date').val(part.next_inspection_date || '');
+                $('#edit_warranty_period').val(part.warranty_period || '');
+                $('#edit_unit_price').val(part.unit_price || '');
+                $('#edit_remarks').val(part.remarks || '');
+                new bootstrap.Modal(document.getElementById('editModal')).show();
+            }
+        },
+        error: function() { showAlert('获取备件信息失败', 'danger'); }
+    });
+}
+
+function submitEdit() {
+    const partId = $('#edit_part_id').val();
+    const data = {
+        name: $('#edit_name').val(),
+        ownership: $('#edit_ownership').val() || null,
+        product_number: $('#edit_product_number').val() || null,
+        specifications: $('#edit_specifications').val() || null,
+        manufacturer: $('#edit_manufacturer').val() || null,
+        usage_status: $('#edit_usage_status').val(),
+        storage_location: $('#edit_storage_location').val() || null,
+        purchase_date: $('#edit_purchase_date').val() || null,
+        last_inspection_date: $('#edit_last_inspection_date').val() || null,
+        next_inspection_date: $('#edit_next_inspection_date').val() || null,
+        warranty_period: $('#edit_warranty_period').val() ? parseInt($('#edit_warranty_period').val()) : null,
+        unit_price: $('#edit_unit_price').val() ? parseFloat($('#edit_unit_price').val()) : null,
+        remarks: $('#edit_remarks').val() || null
+    };
+    if (!data.name) { showAlert('请填写备件名称', 'warning'); return; }
+    $.ajax({
+        url: `/api/spare-parts/${partId}`, method: 'PUT',
+        contentType: 'application/json', data: JSON.stringify(data),
+        success: function(response) {
+            if (response.success) {
+                showAlert('更新成功', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                loadSpareParts();
+            } else {
+                showAlert('更新失败：' + response.message, 'danger');
+            }
+        },
+        error: function() { showAlert('网络错误，请稍后重试', 'danger'); }
+    });
+}
+
+function showPendingInspection() {
+    $.ajax({
+        url: '/api/spare-parts/pending-inspection', method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                displayPendingInspection(response.data);
+                new bootstrap.Modal(document.getElementById('pendingInspectionModal')).show();
+            } else {
+                showAlert('加载失败：' + response.message, 'danger');
+            }
+        },
+        error: function() { showAlert('网络错误，请稍后重试', 'danger'); }
+    });
+}
+
+function displayPendingInspection(parts) {
+    const tbody = $('#pendingInspectionTableBody');
+    tbody.empty();
+    if (parts.length === 0) {
+        tbody.append('<tr><td colspan="9" class="text-center empty-state"><i class="bi bi-inbox"></i><p>暂无待检定备件</p></td></tr>');
+        return;
+    }
+    parts.forEach(function(part) {
+        let inspectionText = '', inspectionClass = '';
+        if (part.days_to_inspection !== null) {
+            if (part.days_to_inspection < 0) {
+                inspectionText = `已过期 ${Math.abs(part.days_to_inspection)} 天`;
+                inspectionClass = 'fw-bold text-danger';
+            } else if (part.days_to_inspection <= 30) {
+                inspectionText = `${part.days_to_inspection} 天`;
+                inspectionClass = 'fw-bold text-warning';
+            } else {
+                inspectionText = `${part.days_to_inspection} 天`;
+                inspectionClass = 'text-success';
+            }
+        }
+        tbody.append(`
+            <tr>
+                <td>${part.id}</td>
+                <td>${part.name}</td>
+                <td>${part.ownership || '-'}</td>
+                <td>${part.product_number || '-'}</td>
+                <td>${part.next_inspection_date}</td>
+                <td class="${inspectionClass}">${inspectionText}</td>
+                <td><span class="badge-status status-${part.usage_status}">${part.usage_status}</span></td>
+                <td>${part.storage_location || '-'}</td>
+                <td><button class="btn btn-sm btn-info" onclick="viewDetail(${part.id})" title="查看详情"><i class="bi bi-eye"></i></button></td>
+            </tr>
+        `);
+    });
+}
+
+function viewDetail(partId) { window.location.href = `/detail/${partId}`; }
+
+function openPartFolder(partId) {
+    $.ajax({
+        url: `/api/folder/spare-part/${partId}/open`, method: 'POST',
+        success: function(response) {
+            if (response.success) showAlert('已打开文件夹', 'success');
+            else showAlert('打开失败：' + response.message, 'danger');
+        },
+        error: function() { showAlert('网络错误，请稍后重试', 'danger'); }
+    });
+}
+
+function openFilesRoot() {
+    $.ajax({
+        url: '/api/folder/root/open', method: 'POST',
+        success: function(response) {
+            if (response.success) showAlert('已打开文件根目录', 'success');
+            else showAlert('打开失败：' + response.message, 'danger');
+        },
+        error: function() { showAlert('网络错误，请稍后重试', 'danger'); }
+    });
+}
+
+function batchInitFolders() {
+    if (!confirm('确定要为所有备件创建文件夹吗？\n已存在的文件夹不会受影响。')) return;
+    $.ajax({
+        url: '/api/folder/spare-parts/batch-init', method: 'POST',
+        success: function(response) {
+            if (response.success) { showAlert(response.message, 'success'); loadFolderStatus(); }
+            else showAlert('初始化失败：' + response.message, 'danger');
+        },
+        error: function() { showAlert('网络错误，请稍后重试', 'danger'); }
+    });
+}
+
+function deletePart(partId) {
+    deletePartId = partId;
+    $('#deleteFolderCheck').prop('checked', false);
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+function confirmDelete() {
+    if (deletePartId === null) return;
+    const deleteFolder = $('#deleteFolderCheck').is(':checked');
+    const url = `/api/spare-parts/${deletePartId}${deleteFolder ? '?delete_folder=true' : ''}`;
+    $.ajax({
+        url: url, method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                let msg = '删除成功';
+                if (response.data && response.data.folder_deleted) msg += '，文件夹已删除';
+                showAlert(msg, 'success');
+                loadSpareParts();
+                loadFolderStatus();
+                bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+            } else {
+                showAlert('删除失败：' + response.message, 'danger');
+            }
+        },
+        error: function() { showAlert('网络错误，请稍后重试', 'danger'); }
+    });
+}
+
+function exportSpareParts() {
+    const filters = { keyword: $('#keyword').val(), usage_status: $('#usageStatus').val(), storage_location: $('#storageLocation').val() };
+    window.location.href = `/api/export/spare-parts?${$.param(filters)}`;
+}
+
+function exportCalibrationPlan() { window.location.href = '/api/export/calibration-plan'; }
+function exportInstrumentDetails() { window.location.href = '/api/export/instrument-details'; }
+
+// ---- 批量导入 ----
+let importPreviewData = null;
+
+function showImportModal() {
+    resetImportModal();
+    new bootstrap.Modal(document.getElementById('importModal')).show();
+}
+
+function resetImportModal() {
+    importPreviewData = null;
+    $('#importStep1').show();
+    $('#importStep2').hide();
+    $('#importStep3').hide();
+    $('#importConfirmBtn').hide();
+    $('#importParsingStatus').hide();
+    $('#importFileInput').val('');
+    $('#step1Indicator').removeClass('text-muted').addClass('active');
+    $('#step2Indicator, #step3Indicator').removeClass('active').addClass('text-muted');
+    $('#step2Indicator span.badge').removeClass('bg-primary').addClass('bg-secondary');
+    $('#step3Indicator span.badge').removeClass('bg-primary').addClass('bg-secondary');
+}
+
+function handleImportFile(file) {
+    if (!file) return;
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+        showAlert('仅支持 .xlsx 或 .xls 格式的Excel文件', 'warning');
+        return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+        showAlert('文件大小不能超过 10MB', 'warning');
+        return;
+    }
+
+    $('#importParsingStatus').show();
+    const formData = new FormData();
+    formData.append('file', file);
+
+    showProgress();
+    $.ajax({
+        url: '/api/spare-parts/import-preview',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            hideProgress();
+            $('#importParsingStatus').hide();
+            if (response.success) {
+                importPreviewData = { file: file, preview: response.data };
+                showImportPreview(response.data);
+            } else {
+                showAlert('解析失败：' + response.message, 'danger');
+            }
+        },
+        error: function(xhr) {
+            hideProgress();
+            $('#importParsingStatus').hide();
+            const r = xhr.responseJSON;
+            showAlert('解析失败：' + (r ? r.message : '网络错误'), 'danger');
+        }
+    });
+}
+
+function showImportPreview(data) {
+    // 进入步骤2
+    $('#importStep1').hide();
+    $('#importStep2').show();
+    $('#step1Indicator').removeClass('active').addClass('text-muted');
+    $('#step2Indicator').removeClass('text-muted').addClass('active');
+    $('#step2Indicator span.badge').removeClass('bg-secondary').addClass('bg-primary');
+
+    $('#previewTotalCount').text(data.total);
+    $('#previewValidCount').text('✓ 合法 ' + data.valid + ' 条');
+    $('#previewInvalidCount').text('✗ 错误 ' + data.invalid + ' 条');
+    $('#importConfirmCount').text(data.valid);
+
+    const tbody = $('#importPreviewTableBody');
+    tbody.empty();
+    data.rows.forEach(function(row) {
+        const statusBadge = row.valid
+            ? '<span class="badge bg-success">合法</span>'
+            : '<span class="badge bg-danger">错误</span>';
+        const trClass = row.valid ? '' : 'table-danger';
+        tbody.append(`
+            <tr class="${trClass}">
+                <td class="text-muted">${row.row}</td>
+                <td>${statusBadge}</td>
+                <td>${row.name || '-'}</td>
+                <td>${row.asset_number || '-'}</td>
+                <td>${row.ownership || '-'}</td>
+                <td>${row.device_type || '-'}</td>
+                <td>${row.usage_status || '-'}</td>
+                <td>${row.next_inspection_date || '-'}</td>
+                <td class="text-danger">${row.error || ''}</td>
+            </tr>
+        `);
+    });
+
+    if (data.valid > 0) {
+        $('#importConfirmBtn').show();
+    }
+}
+
+function confirmImport() {
+    if (!importPreviewData) return;
+    const formData = new FormData();
+    formData.append('file', importPreviewData.file);
+
+    showProgress();
+    $('#importConfirmBtn').prop('disabled', true).html('<div class="spinner-border spinner-border-sm me-2"></div>导入中...');
+    $.ajax({
+        url: '/api/spare-parts/import',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            hideProgress();
+            if (response.success) {
+                const data = response.data;
+                // 进入步骤3
+                $('#importStep2').hide();
+                $('#importStep3').show();
+                $('#importConfirmBtn').hide();
+                $('#step2Indicator').removeClass('active').addClass('text-muted');
+                $('#step3Indicator').removeClass('text-muted').addClass('active');
+                $('#step3Indicator span.badge').removeClass('bg-secondary').addClass('bg-primary');
+
+                $('#importSuccessCount').text(data.success);
+                $('#importFailedCount').text(data.failed);
+
+                if (data.failed_rows && data.failed_rows.length > 0) {
+                    const tbody2 = $('#importFailedTableBody');
+                    tbody2.empty();
+                    data.failed_rows.forEach(function(row) {
+                        tbody2.append(`<tr><td>第 ${row.row} 行</td><td>${row.reason}</td></tr>`);
+                    });
+                    $('#importFailedDetails').show();
                 } else {
-                    let progressClass = 'bg-success';
-                    let textColor = '#ffffff';
-                    
-                    // 根据月数改变颜色：3-4月红色，4-6月黄色，6月以上绿色
-                    if (monthsToInspection <= 4) {
-                        progressClass = 'bg-danger';
-                    } else if (monthsToInspection <= 6) {
-                        progressClass = 'bg-warning';
-                    } else {
-                        progressClass = 'bg-success';
-                    }
-                    
-                    // 计算进度条百分比（基于月数）
-                    let progress = 0;
-                    if (monthsToInspection >= 6) {
-                        progress = 100;
-                    } else if (monthsToInspection >= 4) {
-                        progress = 66;
-                    } else if (monthsToInspection >= 3) {
-                        progress = 33;
-                    } else if (monthsToInspection >= 0) {
-                        progress = 10;
-                    } else {
-                        progress = 0;
-                    }
-                    
-                    const daysText = daysToInspection >= 0 ? 
-                        `剩余${daysToInspection}天 (约${monthsToInspection}个月)` : 
-                        `已过期${Math.abs(daysToInspection)}天 (约${Math.abs(monthsToInspection)}个月)`;
-                    
-                    inspectionBar = `
-                        <div style="position: relative; height: 25px;">
-                            <div class="progress" style="height: 25px;">
-                                <div class="progress-bar ${progressClass}" role="progressbar" 
-                                     style="width: ${progress}%;" 
-                                     aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100">
-                                </div>
-                            </div>
-                            <div style="position: absolute; top: 0; left: 0; right: 0; height: 25px; 
-                                        display: flex; align-items: center; justify-content: center; 
-                                        font-weight: bold; font-size: 14px; color: ${textColor};
-                                        text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">
-                                ${daysText}
-                            </div>
-                        </div>
-                    `;
+                    $('#importFailedDetails').hide();
+                }
+
+                if (data.success > 0) {
+                    showAlert(response.message, 'success');
+                    loadSpareParts();
+                    loadStats();
+                    loadFolderStatus();
+                    loadInspectionBanner();
                 }
             } else {
-                inspectionBar = '<span class="text-muted" style="font-size: 14px; color: #94a3b8 !important;">无需检定</span>';
+                showAlert('导入失败：' + response.message, 'danger');
+                $('#importConfirmBtn').prop('disabled', false).html('<i class="bi bi-check-circle"></i> 确认导入 (<span id="importConfirmCount">' + importPreviewData.preview.valid + '</span> 条)');
             }
-
-            const row = `
-                <tr>
-                    <td>${part.id}</td>
-                    <td>${part.name}</td>
-                    <td>${part.ownership || '-'}</td>
-                    <td>${part.storage_location || '-'}</td>
-                    <td>${part.specifications || '-'}</td>
-                    <td>${part.product_number || '-'}</td>
-                    <td>${inspectionBar}</td>
-                    <td><span class="badge badge-status status-${part.usage_status}">${part.usage_status}</span></td>
-                    <td class="folder-status-cell text-center" data-part-id="${part.id}">
-                        <span class="text-muted"><i class="bi bi-hourglass"></i></span>
-                    </td>
-                    <td>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button class="btn btn-primary" onclick="editPart(${part.id})" title="编辑">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-info" onclick="viewDetail(${part.id})" title="查看详情">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button class="btn btn-success" onclick="openPartFolder(${part.id})" title="打开文件夹">
-                                <i class="bi bi-folder2-open"></i>
-                            </button>
-                            <button class="btn btn-danger" onclick="deletePart(${part.id})" title="删除">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-            tbody.append(row);
-        });
-    }
-
-    // 搜索备件
-    function searchSpareParts() {
-        const filters = {
-            keyword: $('#keyword').val(),
-            ownership: $('#ownership').val(),
-            usage_status: $('#usageStatus').val(),
-            inspection_status: $('#inspectionStatus').val(),
-            storage_location: $('#storageLocation').val()
-        };
-        loadSpareParts(filters);
-    }
-
-    // 重置筛选条件
-    function resetFilters() {
-        $('#keyword').val('');
-        $('#ownership').val('');
-        $('#usageStatus').val('');
-        $('#inspectionStatus').val('');
-        $('#storageLocation').val('');
-        loadSpareParts();
-    }
-
-    // 编辑备件
-    function editPart(partId) {
-        // 获取备件信息
-        $.ajax({
-            url: `/api/spare-parts/${partId}`,
-            method: 'GET',
-            success: function(response) {
-                if (response.success) {
-                    const part = response.data;
-                    $('#edit_part_id').val(part.id);
-                    $('#edit_name').val(part.name);
-                    $('#edit_asset_number').val(part.asset_number);
-                    $('#edit_ownership').val(part.ownership || '');
-                    $('#edit_product_number').val(part.product_number || '');
-                    $('#edit_specifications').val(part.specifications || '');
-                    $('#edit_manufacturer').val(part.manufacturer || '');
-                    $('#edit_usage_status').val(part.usage_status);
-                    $('#edit_storage_location').val(part.storage_location || '');
-                    $('#edit_purchase_date').val(part.purchase_date || '');
-                    $('#edit_last_inspection_date').val(part.last_inspection_date || '');
-                    $('#edit_next_inspection_date').val(part.next_inspection_date || '');
-                    $('#edit_warranty_period').val(part.warranty_period || '');
-                    $('#edit_unit_price').val(part.unit_price || '');
-                    $('#edit_remarks').val(part.remarks || '');
-                    
-                    const modal = new bootstrap.Modal(document.getElementById('editModal'));
-                    modal.show();
-                }
-            },
-            error: function() {
-                showAlert('获取备件信息失败', 'danger');
-            }
-        });
-    }
-
-    // 提交编辑
-    function submitEdit() {
-        const partId = $('#edit_part_id').val();
-        const data = {
-            name: $('#edit_name').val(),
-            ownership: $('#edit_ownership').val() || null,
-            product_number: $('#edit_product_number').val() || null,
-            specifications: $('#edit_specifications').val() || null,
-            manufacturer: $('#edit_manufacturer').val() || null,
-            usage_status: $('#edit_usage_status').val(),
-            storage_location: $('#edit_storage_location').val() || null,
-            purchase_date: $('#edit_purchase_date').val() || null,
-            last_inspection_date: $('#edit_last_inspection_date').val() || null,
-            next_inspection_date: $('#edit_next_inspection_date').val() || null,
-            warranty_period: $('#edit_warranty_period').val() ? parseInt($('#edit_warranty_period').val()) : null,
-            unit_price: $('#edit_unit_price').val() ? parseFloat($('#edit_unit_price').val()) : null,
-            remarks: $('#edit_remarks').val() || null
-        };
-
-        // 验证必填项
-        if (!data.name) {
-            showAlert('请填写备件名称', 'warning');
-            return;
-        }
-
-        $.ajax({
-            url: `/api/spare-parts/${partId}`,
-            method: 'PUT',
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            success: function(response) {
-                if (response.success) {
-                    showAlert('更新成功', 'success');
-                    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
-                    loadSpareParts();
-                } else {
-                    showAlert('更新失败：' + response.message, 'danger');
-                }
-            },
-            error: function() {
-                showAlert('网络错误，请稍后重试', 'danger');
-            }
-        });
-    }
-
-    // 显示待检定备件
-    function showPendingInspection() {
-        $.ajax({
-            url: '/api/spare-parts/pending-inspection',
-            method: 'GET',
-            success: function(response) {
-                if (response.success) {
-                    displayPendingInspection(response.data);
-                    const modal = new bootstrap.Modal(document.getElementById('pendingInspectionModal'));
-                    modal.show();
-                } else {
-                    showAlert('加载失败：' + response.message, 'danger');
-                }
-            },
-            error: function() {
-                showAlert('网络错误，请稍后重试', 'danger');
-            }
-        });
-    }
-
-    // 显示待检定列表
-    function displayPendingInspection(parts) {
-        const tbody = $('#pendingInspectionTableBody');
-        tbody.empty();
-
-        if (parts.length === 0) {
-            tbody.append('<tr><td colspan="9" class="text-center" style="color: #94a3b8;">暂无待检定备件</td></tr>');
-            return;
-        }
-
-        parts.forEach(function(part) {
-            let inspectionText = '';
-            let inspectionClass = '';
-            if (part.days_to_inspection !== null) {
-                if (part.days_to_inspection < 0) {
-                    inspectionText = `已过期 ${Math.abs(part.days_to_inspection)} 天`;
-                    inspectionClass = 'fw-bold';
-                    inspectionClass += ' text-danger';
-                } else if (part.days_to_inspection <= 30) {
-                    inspectionText = `${part.days_to_inspection} 天`;
-                    inspectionClass = 'fw-bold';
-                    inspectionClass += ' text-warning';
-                } else {
-                    inspectionText = `${part.days_to_inspection} 天`;
-                    inspectionClass = 'text-success';
-                }
-            }
-
-            const row = `
-                <tr>
-                    <td>${part.id}</td>
-                    <td>${part.name}</td>
-                    <td>${part.ownership || '-'}</td>
-                    <td>${part.product_number || '-'}</td>
-                    <td>${part.next_inspection_date}</td>
-                    <td class="${inspectionClass}">${inspectionText}</td>
-                    <td><span class="badge badge-status status-${part.usage_status}">${part.usage_status}</span></td>
-                    <td>${part.storage_location || '-'}</td>
-                    <td>
-                        <button class="btn btn-sm btn-info" onclick="viewDetail(${part.id})" title="查看详情">
-                            <i class="bi bi-eye"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-            tbody.append(row);
-        });
-    }
-
-    // 查看详情
-    function viewDetail(partId) {
-        window.location.href = `/detail/${partId}`;
-    }
-
-    // 打开备件文件夹
-    function openPartFolder(partId) {
-        $.ajax({
-            url: `/api/folder/spare-part/${partId}/open`,
-            method: 'POST',
-            success: function(response) {
-                if (response.success) {
-                    showAlert('已打开文件夹', 'success');
-                } else {
-                    showAlert('打开失败：' + response.message, 'danger');
-                }
-            },
-            error: function() {
-                showAlert('网络错误，请稍后重试', 'danger');
-            }
-        });
-    }
-
-    // 打开文件管理根目录
-    function openFilesRoot() {
-        $.ajax({
-            url: '/api/folder/root/open',
-            method: 'POST',
-            success: function(response) {
-                if (response.success) {
-                    showAlert('已打开文件根目录', 'success');
-                } else {
-                    showAlert('打开失败：' + response.message, 'danger');
-                }
-            },
-            error: function() {
-                showAlert('网络错误，请稍后重试', 'danger');
-            }
-        });
-    }
-
-    // 批量初始化文件夹
-    function batchInitFolders() {
-        if (!confirm('确定要为所有备件创建文件夹吗？\n已存在的文件夹不会受影响。')) {
-            return;
-        }
-        
-        $.ajax({
-            url: '/api/folder/spare-parts/batch-init',
-            method: 'POST',
-            success: function(response) {
-                if (response.success) {
-                    showAlert(response.message, 'success');
-                    loadFolderStatus();  // 重新加载文件夹状态
-                } else {
-                    showAlert('初始化失败：' + response.message, 'danger');
-                }
-            },
-            error: function() {
-                showAlert('网络错误，请稍后重试', 'danger');
-            }
-        });
-    }
-
-    // 删除备件
-    function deletePart(partId) {
-        deletePartId = partId;
-        $('#deleteFolderCheck').prop('checked', false);  // 重置复选框
-        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        modal.show();
-    }
-
-    // 确认删除
-    function confirmDelete() {
-        if (deletePartId === null) return;
-        
-        const deleteFolder = $('#deleteFolderCheck').is(':checked');
-        const url = `/api/spare-parts/${deletePartId}${deleteFolder ? '?delete_folder=true' : ''}`;
-
-        $.ajax({
-            url: url,
-            method: 'DELETE',
-            success: function(response) {
-                if (response.success) {
-                    let msg = '删除成功';
-                    if (response.data && response.data.folder_deleted) {
-                        msg += '，文件夹已删除';
-                    }
-                    showAlert(msg, 'success');
-                    loadSpareParts();
-                    loadFolderStatus();  // 重新加载文件夹状态
-                    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
-                } else {
-                    showAlert('删除失败：' + response.message, 'danger');
-                }
-            },
-            error: function(xhr) {
-                showAlert('网络错误，请稍后重试', 'danger');
-            }
-        });
-    }
-
-    // 导出Excel
-    function exportSpareParts() {
-        const filters = {
-            keyword: $('#keyword').val(),
-            usage_status: $('#usageStatus').val(),
-            storage_location: $('#storageLocation').val()
-        };
-
-        const queryString = $.param(filters);
-        window.location.href = `/api/export/spare-parts?${queryString}`;
-    }
-
-    // 导出计量工作计划
-    function exportCalibrationPlan() {
-        window.location.href = '/api/export/calibration-plan';
-    }
-
-    // 导出计量器具明细表
-    function exportInstrumentDetails() {
-        window.location.href = '/api/export/instrument-details';
-    }
-
-    // 显示提示消息
-    function showAlert(message, type) {
-        const alert = $(`
-            <div class="alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" role="alert" style="z-index: 9999; min-width: 300px;">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `);
-        $('body').append(alert);
-        setTimeout(function() {
-            alert.alert('close');
-        }, 3000);
-    }
-
-    // 回车键搜索
-    $('#keyword, #storageLocation').keypress(function(e) {
-        if (e.which === 13) {
-            searchSpareParts();
+        },
+        error: function(xhr) {
+            hideProgress();
+            const r = xhr.responseJSON;
+            showAlert('导入失败：' + (r ? r.message : '网络错误'), 'danger');
+            $('#importConfirmBtn').prop('disabled', false).html('<i class="bi bi-check-circle"></i> 确认导入 (<span id="importConfirmCount">' + importPreviewData.preview.valid + '</span> 条)');
         }
     });
+}
+
+// 拖拽上传
+$(document).ready(function() {
+    const zone = document.getElementById('fileUploadZone');
+    if (zone) {
+        zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.classList.add('dragover'); });
+        zone.addEventListener('dragleave', function(e) { e.preventDefault(); zone.classList.remove('dragover'); });
+        zone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleImportFile(e.dataTransfer.files[0]);
+            }
+        });
+    }
+});
+
+$('#keyword, #storageLocation').keypress(function(e) { if (e.which === 13) searchSpareParts(); });
 </script>
 {% endblock %}

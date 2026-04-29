@@ -16,3 +16,6 @@ pyinstaller==6.3.0
 # 系统托盘（可选）
 pystray==0.19.5
 Pillow==10.1.0
+
+# 密码哈希（Flask已内置werkzeug）
+# 无需额外依赖
