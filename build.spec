@@ -45,6 +45,8 @@ a = Analysis(
         'routes.folders',
         'routes.backup',
         'routes.export',
+        'routes.audit',
+        'routes.settings',
         'utils',
         'utils.helpers',
         'utils.folder_manager',

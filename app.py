@@ -55,7 +55,10 @@ def create_app():
                 template_folder=get_resource_path('templates'),
                 static_folder=get_resource_path('static'))
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(os.path.dirname(__file__), "data", "spare_parts.db")}'
+    # 使用 get_app_dir() 确保打包后路径指向 exe 所在目录，而非 _internal
+    _db_dir = os.path.join(get_app_dir(), 'data')
+    os.makedirs(_db_dir, exist_ok=True)
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(_db_dir, "spare_parts.db")}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', CONFIG['secret_key'])
     app.config['MAX_CONTENT_LENGTH'] = CONFIG['max_upload_size_mb'] * 1024 * 1024
