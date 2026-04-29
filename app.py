@@ -15,7 +15,7 @@ import logging
 
 from flask import Flask, render_template
 
-from config import get_resource_path, CONFIG
+from config import get_resource_path, get_app_dir, CONFIG
 from models import db
 from utils.logger import setup_logging
 from utils.helpers import check_single_instance, open_browser_delayed
