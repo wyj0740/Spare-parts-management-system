@@ -336,9 +336,9 @@
                 <!-- 步骤1: 选择文件 -->
                 <div id="importStep1">
                     <div class="mb-3">
-                        <a href="/api/spare-parts/import-template" class="btn btn-outline-secondary btn-sm">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.open('/api/spare-parts/import-template', '_blank')">
                             <i class="bi bi-download"></i> 下载导入模板
-                        </a>
+                        </button>
                         <small class="text-muted ms-2">支持 .xlsx / .xls 格式</small>
                     </div>
                     <div class="file-upload-zone" id="fileUploadZone">
@@ -677,12 +677,14 @@ function displaySpareParts(parts) {
                 const daysText = daysToInspection >= 0
                     ? `剩余${daysToInspection}天 (约${monthsToInspection}个月)`
                     : `已过期${Math.abs(daysToInspection)}天 (约${Math.abs(monthsToInspection)}个月)`;
+                // 红色用白字+阴影，绿/黄用深色字以保证对比度
+                const textColor = (progressClass === 'bg-danger') ? 'color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.5);' : 'color:#1a1a1a;';
                 inspectionBar = `
                     <div style="position: relative; height: 20px;">
                         <div class="progress" style="height: 20px;">
                             <div class="progress-bar ${progressClass}" role="progressbar" style="width: ${progress}%;"></div>
                         </div>
-                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 11px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${daysText}</div>
+                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 11px; ${textColor}">${daysText}</div>
                     </div>`;
             }
         } else {
